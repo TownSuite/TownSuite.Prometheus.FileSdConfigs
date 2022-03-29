@@ -15,8 +15,12 @@ dotnet publish -c Release -r linux-x64 -p:PublishReadyToRun=true --self-containe
 dotnet publish -c Release -r win-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
+# Runtime identifiers
+If a different target is required, review https://docs.microsoft.com/en-us/dotnet/core/rid-catalog for a full listing.
 
-Produces a single executable file __TownSuite.Prometheus.FileSdConfigs__.   Configuration is done by supplying a appsettings.json file in the same folder as the executable.
+# 
+
+Produces a single executable file __TownSuite.Prometheus.FileSdConfigs__.   Configure in appsettings.json file in the same folder as the executable.
 
 __appsettings.json__ example
 ```json
