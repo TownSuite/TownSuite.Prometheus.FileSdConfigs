@@ -44,3 +44,20 @@ __appsettings.json__ example
     }
 }
 ```
+
+
+# Setup as a windows service.
+
+Download the executable
+
+
+1. Copy it to a folder such as C:\promethues\TownSuite.Prometheus.FileSdConfigs 
+2. Edit appsettings.json
+3. Use [nssm](https://nssm.cc/) to configure it as a windows service.
+
+
+```powershell
+nssm install TownSuite.Prometheus.FileSdConfigs C:\prometheus\TownSuite.Prometheus.FileSdConfigs\TownSuite.Prometheus.FileSdConfigs.exe
+nssm set TownSuite.Prometheus.FileSdConfigs AppDirectory C:\prometheus\TownSuite.Prometheus.FileSdConfigs
+net start TownSuite.Prometheus.FileSdConfigs
+```
