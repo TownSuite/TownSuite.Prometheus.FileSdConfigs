@@ -40,12 +40,12 @@ __appsettings.json__ example
         "AppendPaths": [
             "/metrics",
             "/api/status"
-        ]
-    }],
-    "Labels": {
-        "job": "test",
-        "env": "dev"
-    }
+        ],
+        "Labels": {
+            "job": "test",
+            "env": "dev"
+        }
+    }] 
 }
 ```
 
