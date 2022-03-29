@@ -32,6 +32,11 @@ public class DestFileSdConfig
     {
         foreach (var url in retrievedHosts)
         {
+            if (setting.IgnoreList.Contains(url))
+            {
+                continue;
+            }
+            
             foreach (var path in setting.AppendPaths)
             {
                 _targets.Add(MakeSafeUrl(url, path));

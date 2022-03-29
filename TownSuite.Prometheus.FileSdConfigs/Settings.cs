@@ -30,4 +30,5 @@ public class Settings
     public string AuthHeader { get; init; }
     public string[] AppendPaths { get; init; }
     public Dictionary<string, string> Labels { get; init; }
+    public string[] IgnoreList { get; init; }
 }
