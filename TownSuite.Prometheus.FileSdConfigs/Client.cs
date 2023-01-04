@@ -10,7 +10,7 @@ public class Client
         _httpClient = httpClient;
     }
     
-    public virtual async Task<string[]> GetJsonListFromContent(string authHeader, string lookupUrl)
+    public virtual async Task<T> GetJsonFromContent<T>(string authHeader, string lookupUrl)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, lookupUrl);
         if (!string.IsNullOrWhiteSpace(authHeader))
@@ -22,9 +22,9 @@ public class Client
 
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<string[]>();
+            return await response.Content.ReadFromJsonAsync<T>();
         }
 
-        return null;
+        return default(T);
     }
 }

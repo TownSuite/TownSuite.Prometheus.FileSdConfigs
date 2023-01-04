@@ -1,35 +1,37 @@
 using System.Text;
 using System.Text.Json;
 
-namespace TownSuite.Prometheus.FileSdConfigs;
+namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
 public class ServiceDiscovery
 {
     private Client _client;
-    public ServiceDiscovery(Client client)
+    private readonly Settings[] _settings;
+
+    public ServiceDiscovery(Client client, Settings[] settings)
     {
         _client = client;
+        _settings = settings;
     }
 
-    public async Task GenerateTargetFile(Settings[] settings, Stream output)
+    public async Task GenerateTargetFile(Stream output)
     {
         var targets = new List<DestFileSdConfig>();
-        foreach (var setting in settings)
+        foreach (var setting in _settings)
         {
-            
             string[] retrievedHosts;
             if (setting.LookupUrl.StartsWith("http"))
             {
-                retrievedHosts = await  _client.GetJsonListFromContent(setting.AuthHeader, setting.LookupUrl);
+                retrievedHosts = await _client.GetJsonFromContent<string[]>(setting.AuthHeader, setting.LookupUrl);
             }
             else
             {
                 retrievedHosts = JsonSerializer.Deserialize<string[]>(System.IO.File.ReadAllText(setting.LookupUrl));
             }
 
-
             targets.Add(await DestFileSdConfig.Create(retrievedHosts, setting, _client));
         }
+
 
         string jsonString = JsonSerializer.Serialize(targets);
 

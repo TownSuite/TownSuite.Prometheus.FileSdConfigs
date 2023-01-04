@@ -45,7 +45,8 @@ IConfiguration config = new ConfigurationBuilder()
     .Build();
 
 // Get values from the config given their key and their target type.
-var settings = config.GetRequiredSection("Settings").Get<Settings[]>();
+var settings = config.GetRequiredSection("Settings").Get<TownSuite.Prometheus.FileSdConfigs.V1.Settings[]>();
+var settingsV2 = config.GetRequiredSection("SettingsV2").Get<TownSuite.Prometheus.FileSdConfigs.V2.Settings[]>();
 string outputpath = config.GetValue<string>("OutputPath");
 int delayInSeconds = config.GetValue<int>("DelayInSeconds");
 
@@ -53,12 +54,26 @@ while (true)
 {
     Console.WriteLine("Process starting");
     using var httpClient = new HttpClient();
-    var client = new Client(httpClient);
-    var sd = new ServiceDiscovery(client);
-    await using var fs = new FileStream(outputpath, FileMode.Create);
-    await sd.GenerateTargetFile(settings, fs);
+
+    V1(httpClient);
+    V2(httpClient);
 
     Console.WriteLine($"Waiting for {delayInSeconds} seconds.");
     await Task.Delay(TimeSpan.FromSeconds(delayInSeconds));
 }
 
+async Task V1(HttpClient httpClient)
+{
+    var client = new Client(httpClient);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings);
+    await using var fs = new FileStream(outputpath, FileMode.Create);
+    await sd.GenerateTargetFile(fs);
+}
+
+async Task V2(HttpClient httpClient)
+{
+    var client = new Client(httpClient);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2);
+    await using var fs = new FileStream(outputpath, FileMode.Create);
+    await sd.GenerateTargetFile(fs);
+}

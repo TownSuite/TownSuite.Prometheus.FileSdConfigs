@@ -24,7 +24,7 @@ SOFTWARE.
 
 using System.Text.Json.Serialization;
 
-namespace TownSuite.Prometheus.FileSdConfigs;
+namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
 public class DestFileSdConfig
 {
@@ -37,10 +37,10 @@ public class DestFileSdConfig
                 continue;
             }
 
-            _targets = targets.ToList();
-
-            Labels = setting.Labels;
+            _targets.Add(url);
         }
+
+        Labels = setting.Labels;
     }
 
     readonly List<string> _targets = new List<string>();
@@ -61,7 +61,7 @@ public class DestFileSdConfig
                 if (path.StartsWith("https://", StringComparison.InvariantCultureIgnoreCase) ||
                     path.StartsWith("http://", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var extraEndpoints = await client.GetJsonListFromContent(setting.AuthHeader, path);
+                    var extraEndpoints = await client.GetJsonFromContent<string[]>(setting.AuthHeader, path);
                     foreach (var extraPath in extraEndpoints)
                     {
                         targets.Add(MakeSafeUrl(url, extraPath));

@@ -1,7 +1,8 @@
 ﻿using System.Text;
 using NUnit.Framework;
+using TownSuite.Prometheus.FileSdConfigs.V1;
 
-namespace TownSuite.Prometheus.FileSdConfigs.Tests;
+namespace TownSuite.Prometheus.FileSdConfigs.Tests.V1;
 
 public class SdTargetFileTest
 {
@@ -27,8 +28,8 @@ public class SdTargetFileTest
                 "https://example.site1.townsuite.com",
                 "https://example.site2.townsuite.com"
             }, extraPathsAppendPaths: null);
-        var sd = new ServiceDiscovery(client);
-        await sd.GenerateTargetFile(st.ToArray(), ms);
+        var sd = new ServiceDiscovery(client, st.ToArray());
+        await sd.GenerateTargetFile(ms);
 
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
 
@@ -58,17 +59,18 @@ public class SdTargetFileTest
         var client = new FakeClient(null,
             returnValues: new string[]
             {
-                "https://example.site1.townsuite.com", 
+                "https://example.site1.townsuite.com",
                 "https://example.site2.townsuite.com",
             },
             extraPathsAppendPaths: new[] { "/hello/world", "/world/hello" });
-        var sd = new ServiceDiscovery(client);
-        await sd.GenerateTargetFile(st.ToArray(), ms);
+        var sd = new ServiceDiscovery(client, st.ToArray());
+        await sd.GenerateTargetFile(ms);
 
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
 
 
-        string expectedJson = "[{\"targets\":[\"https://example.site1.townsuite.com/healthz/live\",\"https://example.site1.townsuite.com/healthz/ready\",\"https://example.site1.townsuite.com/hello/world\",\"https://example.site1.townsuite.com/world/hello\",\"https://example.site2.townsuite.com/healthz/live\",\"https://example.site2.townsuite.com/healthz/ready\",\"https://example.site2.townsuite.com/hello/world\",\"https://example.site2.townsuite.com/world/hello\"],\"labels\":{\"job\":\"test\"}}]";
+        string expectedJson =
+            "[{\"targets\":[\"https://example.site1.townsuite.com/healthz/live\",\"https://example.site1.townsuite.com/healthz/ready\",\"https://example.site1.townsuite.com/hello/world\",\"https://example.site1.townsuite.com/world/hello\",\"https://example.site2.townsuite.com/healthz/live\",\"https://example.site2.townsuite.com/healthz/ready\",\"https://example.site2.townsuite.com/hello/world\",\"https://example.site2.townsuite.com/world/hello\"],\"labels\":{\"job\":\"test\"}}]";
         Assert.That(string.Equals(actualJson, expectedJson), Is.EqualTo(true));
     }
 }

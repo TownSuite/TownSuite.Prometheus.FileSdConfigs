@@ -1,4 +1,4 @@
-namespace TownSuite.Prometheus.FileSdConfigs.Tests;
+namespace TownSuite.Prometheus.FileSdConfigs.Tests.V1;
 
 class FakeClient : Client
 {
@@ -11,14 +11,13 @@ class FakeClient : Client
         _extraPathsAppendPaths = extraPathsAppendPaths;
     }
 
-    public override Task<string[]> GetJsonListFromContent(string authHeader, string lookupUrl)
+    public override Task<T> GetJsonFromContent<T>(string authHeader, string lookupUrl)
     {
-
         if (lookupUrl.Contains("get_appendpaths"))
         {
-            return Task.FromResult(_extraPathsAppendPaths);
+            return Task.FromResult( (T)(object)_extraPathsAppendPaths);
         }
         
-        return Task.FromResult(_returnValues);
+        return Task.FromResult((T)(object)_returnValues);
     }
 }

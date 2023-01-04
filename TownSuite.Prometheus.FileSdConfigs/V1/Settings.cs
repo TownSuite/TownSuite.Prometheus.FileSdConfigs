@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-namespace TownSuite.Prometheus.FileSdConfigs;
+namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
 public class Settings
 {
@@ -34,7 +34,9 @@ public class Settings
     /// ......
     /// </summary>
     public string LookupUrl { get; init; }
+
     public string AuthHeader { get; init; }
+
     /// <summary>
     /// The endpoints that are used with the base service urls.   They are combined
     /// to form a complete list of end points. The main purpose is to find
@@ -50,6 +52,7 @@ public class Settings
     /// that can be called that returns a json list of end points.
     /// </summary>
     public string[] AppendPaths { get; init; }
+
     public Dictionary<string, string> Labels { get; init; }
     public string[] IgnoreList { get; init; }
 }
