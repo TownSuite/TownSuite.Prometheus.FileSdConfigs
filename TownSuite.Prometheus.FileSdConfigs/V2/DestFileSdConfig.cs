@@ -40,7 +40,19 @@ public class DestFileSdConfig
             _targets.Add(url);
         }
 
-        Labels = labels;
+        if (setting.LowercaseLabels)
+        {
+            Labels = new Dictionary<string, string>();
+            foreach (var item in labels)
+            {
+                Labels.Add(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+            }
+        }
+        else
+        {
+            Labels = labels;
+        }
+        
     }
 
     readonly List<string> _targets = new List<string>();

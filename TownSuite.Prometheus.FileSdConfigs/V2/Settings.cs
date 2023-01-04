@@ -30,4 +30,5 @@ public class Settings
     public string ServiceDiscoverUrl { get; init; }
     public string AuthHeader { get; init; }
     public string[] IgnoreList { get; init; }
+    public bool LowercaseLabels { get; init; }
 }
