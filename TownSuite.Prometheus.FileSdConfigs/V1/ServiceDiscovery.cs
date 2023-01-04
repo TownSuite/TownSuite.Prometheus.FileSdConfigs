@@ -19,6 +19,8 @@ public class ServiceDiscovery
         var targets = new List<DestFileSdConfig>();
         foreach (var setting in _settings)
         {
+            if (setting == null) continue;
+            
             string[] retrievedHosts;
             if (setting.LookupUrl.StartsWith("http"))
             {

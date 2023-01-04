@@ -51,7 +51,7 @@ public class DestFileSdConfig
         List<string> targets = new List<string>();
         Dictionary<string, string> labels = new Dictionary<string, string>();
         var json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
-            $"{setting.ServiceDiscoverUrl}");
+            $"{setting.ServiceDiscoverUrl}{key}");
 
         foreach (var instance in json.Services)
         {
