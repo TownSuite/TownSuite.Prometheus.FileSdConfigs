@@ -23,6 +23,7 @@ SOFTWARE.
  */
 
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace TownSuite.Prometheus.FileSdConfigs.V2;
 
@@ -52,13 +53,12 @@ public class DestFileSdConfig
         {
             Labels = labels;
         }
-        
     }
 
     readonly List<string> _targets = new List<string>();
 
     public static async Task<DestFileSdConfig> Create(string key, Settings setting,
-        Client client, AppSettings appSettings)
+        Client client, AppSettings appSettings, ILogger logger)
     {
         List<string> targets = new List<string>();
         Dictionary<string, string> labels = new Dictionary<string, string>();
@@ -99,27 +99,32 @@ public class DestFileSdConfig
 
             if (!string.IsNullOrWhiteSpace(extraHealthChecksUrlLookup))
             {
-                if (extraHealthChecksUrlLookup.StartsWith("http"))
+                string finalExtraHealthCheckUrl = extraHealthChecksUrlLookup.StartsWith("http")
+                    ? extraHealthChecksUrlLookup
+                    : MakeSafeUrl(baseUrl, extraHealthChecksUrlLookup);
+
+                try
                 {
                     var extraHealthChecks = await client.GetJsonFromContent<string[]>(setting.AuthHeader,
-                        MakeSafeUrl(baseUrl, extraHealthChecksUrlLookup), appSettings);
+                        finalExtraHealthCheckUrl, appSettings);
 
                     foreach (string endpoint in extraHealthChecks)
                     {
                         targets.Add(MakeSafeUrl(baseUrl, endpoint));
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    targets.Add(MakeSafeUrl(baseUrl, extraHealthChecksUrlLookup));
+                    logger.LogError($"{finalExtraHealthCheckUrl} Extra Health Check return value is invalid");
+                    continue;
                 }
+
             }
 
             foreach (var l in instance.Labels)
             {
                 labels.TryAdd(l.Key, l.Value);
             }
-
         }
 
 

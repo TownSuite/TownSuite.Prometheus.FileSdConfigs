@@ -27,6 +27,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using TownSuite.Prometheus.FileSdConfigs;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 //using IHost host = Host.CreateDefaultBuilder(args).Build();
 
@@ -49,16 +50,36 @@ var appSettings = config.GetRequiredSection("AppSettings").Get<AppSettings>();
 var settings = config.GetRequiredSection("Settings").Get<TownSuite.Prometheus.FileSdConfigs.V1.Settings[]>();
 var settingsV2 = config.GetRequiredSection("SettingsV2").Get<TownSuite.Prometheus.FileSdConfigs.V2.Settings[]>();
 
-while (true)
+
+// https://learn.microsoft.com/en-us/dotnet/core/extensions/logging?tabs=command-line#non-host-console-app
+using var loggerFactory = LoggerFactory.Create(builder =>
 {
-    Console.WriteLine("Process starting");
-    using var httpClient = new HttpClient();
+    builder
+        .AddFilter("Microsoft", LogLevel.Warning)
+        .AddFilter("System", LogLevel.Warning)
+        .AddFilter("TownSuite.Prometheus.FileSdConfigs.Program", LogLevel.Debug)
+        .AddConsole();
+});
+ILogger logger = loggerFactory.CreateLogger<Program>();
 
-    V1(httpClient);
-    V2(httpClient);
+try
+{
+    while (true)
+    {
+        logger.LogInformation("Process starting");
+        using var httpClient = new HttpClient();
 
-    Console.WriteLine($"Waiting for {appSettings.DelayInSeconds} seconds.");
-    await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
+        await V1(httpClient);
+        await V2(httpClient);
+
+        logger.LogInformation($"Waiting for {appSettings.DelayInSeconds} seconds.");
+        await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
+    }
+}
+catch (Exception ex)
+{
+    logger.LogCritical(ex, "Crashing");
+    System.Environment.Exit(-1);
 }
 
 async Task V1(HttpClient httpClient)
@@ -72,7 +93,7 @@ async Task V1(HttpClient httpClient)
 async Task V2(HttpClient httpClient)
 {
     var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2, appSettings);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathV2, FileMode.Create);
     await sd.GenerateTargetFile(fs);
 }
