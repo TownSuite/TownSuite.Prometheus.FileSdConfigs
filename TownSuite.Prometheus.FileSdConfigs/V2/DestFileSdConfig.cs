@@ -68,7 +68,7 @@ public class DestFileSdConfig
         foreach (var instance in json.Services)
         {
             // "/health/ready"
-            string healthCheck = string.Empty;
+            List<string> healthCheck =  new List<string>();
             // "/heathz/extraendpoints" or "https://example1.townsuite.com/lookup'
             string extraHealthChecksUrlLookup = String.Empty;
             // "https://example1.townsuite.com"
@@ -78,7 +78,7 @@ public class DestFileSdConfig
             {
                 if (string.Equals(attr.Key, "HealthCheck", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    healthCheck = attr.Value;
+                    healthCheck.Add(attr.Value);
                 }
                 else if (string.Equals(attr.Key, "ExtraHealthCheck", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -88,13 +88,20 @@ public class DestFileSdConfig
                 {
                     baseUrl = attr.Value;
                 }
+                else if (attr.Key.StartsWith("HealthCheck_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    healthCheck.Add(attr.Value);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(baseUrl)) continue;
 
-            if (!string.IsNullOrWhiteSpace(healthCheck))
+            if (healthCheck.Any())
             {
-                targets.Add(MakeSafeUrl(baseUrl, healthCheck));
+                foreach (var endpoint in healthCheck)
+                {
+                    targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(extraHealthChecksUrlLookup))
