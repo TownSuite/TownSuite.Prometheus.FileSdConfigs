@@ -45,11 +45,9 @@ IConfiguration config = new ConfigurationBuilder()
     .Build();
 
 // Get values from the config given their key and their target type.
+var appSettings = config.GetRequiredSection("AppSettings").Get<AppSettings>();
 var settings = config.GetRequiredSection("Settings").Get<TownSuite.Prometheus.FileSdConfigs.V1.Settings[]>();
 var settingsV2 = config.GetRequiredSection("SettingsV2").Get<TownSuite.Prometheus.FileSdConfigs.V2.Settings[]>();
-string outputpath = config.GetValue<string>("OutputPath");
-string outputpathV2 = config.GetValue<string>("OutputPathV2");
-int delayInSeconds = config.GetValue<int>("DelayInSeconds");
 
 while (true)
 {
@@ -59,22 +57,22 @@ while (true)
     V1(httpClient);
     V2(httpClient);
 
-    Console.WriteLine($"Waiting for {delayInSeconds} seconds.");
-    await Task.Delay(TimeSpan.FromSeconds(delayInSeconds));
+    Console.WriteLine($"Waiting for {appSettings.DelayInSeconds} seconds.");
+    await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
 }
 
 async Task V1(HttpClient httpClient)
 {
     var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings);
-    await using var fs = new FileStream(outputpath, FileMode.Create);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings);
+    await using var fs = new FileStream(appSettings.OutputPath, FileMode.Create);
     await sd.GenerateTargetFile(fs);
 }
 
 async Task V2(HttpClient httpClient)
 {
     var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2);
-    await using var fs = new FileStream(outputpathV2, FileMode.Create);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2, appSettings);
+    await using var fs = new FileStream(appSettings.OutputPathV2, FileMode.Create);
     await sd.GenerateTargetFile(fs);
 }

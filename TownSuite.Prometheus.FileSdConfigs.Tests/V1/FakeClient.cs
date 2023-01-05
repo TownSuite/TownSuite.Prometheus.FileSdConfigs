@@ -11,7 +11,7 @@ class FakeClient : Client
         _extraPathsAppendPaths = extraPathsAppendPaths;
     }
 
-    public override Task<T> GetJsonFromContent<T>(string authHeader, string lookupUrl)
+    public override Task<T> GetJsonFromContent<T>(string authHeader, string lookupUrl, AppSettings appSettings)
     {
         if (lookupUrl.Contains("get_appendpaths"))
         {

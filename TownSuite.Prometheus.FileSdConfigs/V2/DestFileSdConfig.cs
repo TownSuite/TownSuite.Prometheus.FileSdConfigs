@@ -58,12 +58,12 @@ public class DestFileSdConfig
     readonly List<string> _targets = new List<string>();
 
     public static async Task<DestFileSdConfig> Create(string key, Settings setting,
-        Client client)
+        Client client, AppSettings appSettings)
     {
         List<string> targets = new List<string>();
         Dictionary<string, string> labels = new Dictionary<string, string>();
         var json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
-            $"{setting.ServiceDiscoverUrl}{key}");
+            $"{setting.ServiceDiscoverUrl}{key}", appSettings);
 
         foreach (var instance in json.Services)
         {
@@ -102,7 +102,7 @@ public class DestFileSdConfig
                 if (extraHealthChecksUrlLookup.StartsWith("http"))
                 {
                     var extraHealthChecks = await client.GetJsonFromContent<string[]>(setting.AuthHeader,
-                        MakeSafeUrl(baseUrl, extraHealthChecksUrlLookup));
+                        MakeSafeUrl(baseUrl, extraHealthChecksUrlLookup), appSettings);
 
                     foreach (string endpoint in extraHealthChecks)
                     {

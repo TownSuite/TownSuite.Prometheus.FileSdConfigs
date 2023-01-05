@@ -57,7 +57,7 @@ public class SdTargetFileTest
                 "Service2.Example"
             });
 
-        var sd = new ServiceDiscovery(client, st.ToArray());
+        var sd = new ServiceDiscovery(client, st.ToArray(), new AppSettings());
         await sd.GenerateTargetFile(ms);
 
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());

@@ -46,7 +46,7 @@ public class DestFileSdConfig
     readonly List<string> _targets = new List<string>();
 
     public static async Task<DestFileSdConfig> Create(IEnumerable<string> retrievedHosts, Settings setting,
-        Client client)
+        Client client, AppSettings appSettings)
     {
         List<string> targets = new List<string>();
         foreach (var url in retrievedHosts)
@@ -61,7 +61,8 @@ public class DestFileSdConfig
                 if (path.StartsWith("https://", StringComparison.InvariantCultureIgnoreCase) ||
                     path.StartsWith("http://", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var extraEndpoints = await client.GetJsonFromContent<string[]>(setting.AuthHeader, path);
+                    var extraEndpoints =
+                        await client.GetJsonFromContent<string[]>(setting.AuthHeader, path, appSettings);
                     foreach (var extraPath in extraEndpoints)
                     {
                         targets.Add(MakeSafeUrl(url, extraPath));

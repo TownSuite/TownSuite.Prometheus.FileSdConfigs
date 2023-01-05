@@ -28,7 +28,7 @@ public class SdTargetFileTest
                 "https://example.site1.townsuite.com",
                 "https://example.site2.townsuite.com"
             }, extraPathsAppendPaths: null);
-        var sd = new ServiceDiscovery(client, st.ToArray());
+        var sd = new ServiceDiscovery(client, st.ToArray(), new AppSettings());
         await sd.GenerateTargetFile(ms);
 
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
@@ -63,7 +63,7 @@ public class SdTargetFileTest
                 "https://example.site2.townsuite.com",
             },
             extraPathsAppendPaths: new[] { "/hello/world", "/world/hello" });
-        var sd = new ServiceDiscovery(client, st.ToArray());
+        var sd = new ServiceDiscovery(client, st.ToArray(), new AppSettings());
         await sd.GenerateTargetFile(ms);
 
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
