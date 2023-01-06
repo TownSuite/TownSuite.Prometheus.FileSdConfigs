@@ -68,9 +68,10 @@ public class DestFileSdConfig
         foreach (var instance in json.Services)
         {
             // "/health/ready"
-            List<string> healthCheck =  new List<string>();
+            List<string> healthCheck = new List<string>();
             // "/heathz/extraendpoints" or "https://example1.townsuite.com/lookup'
             string extraHealthChecksUrlLookup = String.Empty;
+            string extraHealthChecksPrefix = String.Empty;
             // "https://example1.townsuite.com"
             string baseUrl = String.Empty;
 
@@ -83,6 +84,11 @@ public class DestFileSdConfig
                 else if (string.Equals(attr.Key, "ExtraHealthCheck", StringComparison.InvariantCultureIgnoreCase))
                 {
                     extraHealthChecksUrlLookup = attr.Value;
+                }
+                else if (string.Equals(attr.Key, "ExtraHealthCheck_Prefix",
+                             StringComparison.InvariantCultureIgnoreCase))
+                {
+                    extraHealthChecksPrefix = attr.Value;
                 }
                 else if (string.Equals(attr.Key, "BaseUrl", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -117,7 +123,15 @@ public class DestFileSdConfig
 
                     foreach (string endpoint in extraHealthChecks)
                     {
-                        targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                        if (!string.IsNullOrWhiteSpace(extraHealthChecksPrefix))
+                        {
+                            string prefix = MakeSafeUrl(baseUrl, extraHealthChecksPrefix);
+                            targets.Add(MakeSafeUrl(prefix, endpoint));
+                        }
+                        else
+                        {
+                            targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -125,7 +139,6 @@ public class DestFileSdConfig
                     logger.LogError($"{finalExtraHealthCheckUrl} Extra Health Check return value is invalid");
                     continue;
                 }
-
             }
 
             foreach (var l in instance.Labels)
