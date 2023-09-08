@@ -62,8 +62,16 @@ public class DestFileSdConfig
     {
         List<string> targets = new List<string>();
         Dictionary<string, string> labels = new Dictionary<string, string>();
-        var json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
+        DiscoverValues json = null;
+        
+        json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
             $"{setting.ServiceDiscoverUrl}{key}", appSettings);
+
+        if (json?.Services == null)
+        {
+            logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
+            return null;
+        }
 
         foreach (var instance in json.Services)
         {
@@ -121,16 +129,19 @@ public class DestFileSdConfig
                     var extraHealthChecks = await client.GetJsonFromContent<string[]>(setting.AuthHeader,
                         finalExtraHealthCheckUrl, appSettings);
 
-                    foreach (string endpoint in extraHealthChecks)
+                    if (extraHealthChecks != null)
                     {
-                        if (!string.IsNullOrWhiteSpace(extraHealthChecksPrefix))
+                        foreach (string endpoint in extraHealthChecks)
                         {
-                            string prefix = MakeSafeUrl(baseUrl, extraHealthChecksPrefix);
-                            targets.Add(MakeSafeUrl(prefix, endpoint));
-                        }
-                        else
-                        {
-                            targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                            if (!string.IsNullOrWhiteSpace(extraHealthChecksPrefix))
+                            {
+                                string prefix = MakeSafeUrl(baseUrl, extraHealthChecksPrefix);
+                                targets.Add(MakeSafeUrl(prefix, endpoint));
+                            }
+                            else
+                            {
+                                targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                            }
                         }
                     }
                 }

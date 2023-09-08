@@ -45,7 +45,11 @@ public class ServiceDiscovery
             foreach (var fullKey in serviceKeys)
             {
                 string key = fullKey.Split(".")[0];
-                targets.Add(await DestFileSdConfig.Create(key, setting, _client, _appSettings, _logger));
+                var target = await DestFileSdConfig.Create(key, setting, _client, _appSettings, _logger);
+                if (target != null)
+                {
+                    targets.Add(target);
+                }
             }
         }
 
