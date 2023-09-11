@@ -68,3 +68,31 @@ nssm install TownSuite.Prometheus.FileSdConfigs C:\prometheus\TownSuite.Promethe
 nssm set TownSuite.Prometheus.FileSdConfigs AppDirectory C:\prometheus\TownSuite.Prometheus.FileSdConfigs
 net start TownSuite.Prometheus.FileSdConfigs
 ```
+
+
+# Setup as a Linux service
+
+Extract the release and copy it to /opt/TownSuite.Prometheus.FileSdConfigs.
+
+```
+[Unit]
+Description=The description of your service
+# How to install:
+# Copy YourProgramName binary to /opt/TownSuite.Prometheus.FileSdConfigs/TownSuite.Prometheus.FileSdConfigs
+# Copy /etc/systemd/system/townsuite-prometheus-filesdconfigs.service
+# systemctl enable townsuite-prometheus-filesdconfigs.service
+# systemctl start townsuite-prometheus-filesdconfigs.service
+
+[Service]
+ExecStart=/opt/TownSuite.Prometheus.FileSdConfigs/TownSuite.Prometheus.FileSdConfigs
+Restart=always
+RestartSec=10                       # Restart service after 10 seconds if node service crashes
+StandardOutput=syslog               # Output to syslog" >> /etc/systemd/system/your-program-service-name.service
+StandardError=syslog                # Output to syslog" >> /etc/systemd/system/your-program-service-name.service
+SyslogIdentifier=TownSuite.Prometheus.FileSdConfigs
+WorkingDirectory=/opt/TownSuite.Prometheus.FileSdConfigs/
+
+[Install]
+WantedBy=multi-user.target
+```
+
