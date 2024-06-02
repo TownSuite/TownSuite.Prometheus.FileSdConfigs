@@ -33,7 +33,11 @@ public class DestFileSdConfig
     {
         foreach (var url in targets)
         {
-            if (setting.IgnoreList != null && setting.IgnoreList.Contains(url))
+            if (setting.IgnoreList != null 
+                && (setting.IgnoreList.Contains(url) 
+                    || setting.IgnoreList.Any(ignoredUrl => url.StartsWith(ignoredUrl))
+                    )
+                )
             {
                 continue;
             }
