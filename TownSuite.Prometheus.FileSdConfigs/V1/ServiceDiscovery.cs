@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
+[Obsolete("Use V2 ServiceDiscovery instead")]
 public class ServiceDiscovery
 {
     private readonly Client _client;

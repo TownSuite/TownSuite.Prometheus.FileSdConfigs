@@ -28,6 +28,7 @@ using Microsoft.Extensions.Configuration;
 using TownSuite.Prometheus.FileSdConfigs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TownSuite.Prometheus.FileSdConfigs.V2;
 
 //using IHost host = Host.CreateDefaultBuilder(args).Build();
 
@@ -71,6 +72,7 @@ try
 
         await V1(httpClient);
         await V2(httpClient);
+        await PrometheusMetrics(httpClient);
 
         logger.LogInformation($"Waiting for {appSettings.DelayInSeconds} seconds.");
         await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
@@ -93,7 +95,24 @@ async Task V1(HttpClient httpClient)
 async Task V2(HttpClient httpClient)
 {
     var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery(client, settingsV2, appSettings, logger);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathV2, FileMode.Create);
     await sd.GenerateTargetFile(fs);
 }
+
+async Task PrometheusMetrics(HttpClient httpClient)
+{
+    var client = new Client(httpClient);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger);
+    await using var fs = new FileStream(appSettings.OutputPathPrometheusMetrics, FileMode.Create);
+    await sd.GenerateTargetFile(fs);
+}
+
+async Task OpenTelemetryMetrics(HttpClient httpClient)
+{
+    var client = new Client(httpClient);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger);
+    await using var fs = new FileStream(appSettings.OutputPathOpenTelemetry, FileMode.Create);
+    await sd.GenerateTargetFile(fs);
+}
+

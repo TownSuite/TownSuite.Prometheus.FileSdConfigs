@@ -29,88 +29,85 @@ namespace TownSuite.Prometheus.FileSdConfigs.V2;
 
 public class DestFileSdConfig
 {
-    public DestFileSdConfig(IEnumerable<string> targets, Settings setting, Dictionary<string, string> labels)
+    private readonly AppSettings appSettings;
+    private readonly ILogger logger;
+    private readonly SortedSet<string> targets = new();
+
+    #region Per Service Loop
+
+    // "/health/ready"
+    private SortedSet<string> healthCheck = new();
+
+    // "/heathz/extraendpoints" or "https://example1.townsuite.com/lookup'
+    private string extraHealthChecksUrlLookup = String.Empty;
+
+    private string extraHealthChecksPrefix = String.Empty;
+
+    // "https://example1.townsuite.com"
+    protected string baseUrl = String.Empty;
+
+    #endregion
+
+    private readonly Settings setting;
+    private readonly Client client;
+
+    public DestFileSdConfig(AppSettings appSettings, ILogger logger,
+        Settings setting, Client client)
     {
-        foreach (var url in targets)
-        {
-            if (setting.IgnoreList != null 
-                && (setting.IgnoreList.Contains(url) 
-                    || setting.IgnoreList.Any(ignoredUrl => url.StartsWith(ignoredUrl))
-                    )
-                )
-            {
-                continue;
-            }
+        this.appSettings = appSettings;
+        this.logger = logger;
+        this.setting = setting;
+        this.client = client;
+    }
 
-            _targets.Add(url);
-        }
-
-        if (setting.LowercaseLabels)
+    protected virtual void AttributeParsing(ServiceInfo serviceInfo)
+    {
+        foreach (var attr in serviceInfo.Attributes)
         {
-            Labels = new Dictionary<string, string>();
-            foreach (var item in labels)
+            if (string.Equals(attr.Key, "HealthCheck", StringComparison.InvariantCultureIgnoreCase))
             {
-                Labels.Add(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+                healthCheck.Add(attr.Value);
             }
-        }
-        else
-        {
-            Labels = labels;
+            else if (string.Equals(attr.Key, "ExtraHealthCheck", StringComparison.InvariantCultureIgnoreCase))
+            {
+                extraHealthChecksUrlLookup = attr.Value;
+            }
+            else if (string.Equals(attr.Key, "ExtraHealthCheck_Prefix",
+                         StringComparison.InvariantCultureIgnoreCase))
+            {
+                extraHealthChecksPrefix = attr.Value;
+            }
+            else if (string.Equals(attr.Key, "BaseUrl", StringComparison.InvariantCultureIgnoreCase))
+            {
+                baseUrl = attr.Value;
+            }
+            else if (attr.Key.StartsWith("HealthCheck_", StringComparison.InvariantCultureIgnoreCase))
+            {
+                healthCheck.Add(attr.Value);
+            }
         }
     }
 
-    readonly List<string> _targets = new List<string>();
-
-    public static async Task<DestFileSdConfig> Create(string key, Settings setting,
-        Client client, AppSettings appSettings, ILogger logger)
+    public async Task Read(string key)
     {
-        List<string> targets = new List<string>();
-        Dictionary<string, string> labels = new Dictionary<string, string>();
         DiscoverValues json = null;
-        
         json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
             $"{setting.ServiceDiscoverUrl}{key}", appSettings);
 
         if (json?.Services == null)
         {
             logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
-            return null;
+            return;
         }
-
+        
         foreach (var instance in json.Services)
         {
-            // "/health/ready"
-            List<string> healthCheck = new List<string>();
-            // "/heathz/extraendpoints" or "https://example1.townsuite.com/lookup'
-            string extraHealthChecksUrlLookup = String.Empty;
-            string extraHealthChecksPrefix = String.Empty;
-            // "https://example1.townsuite.com"
-            string baseUrl = String.Empty;
+            healthCheck.Clear();
+            extraHealthChecksUrlLookup = String.Empty;
+            extraHealthChecksPrefix = String.Empty;
+            baseUrl = String.Empty;
 
-            foreach (var attr in instance.Attributes)
-            {
-                if (string.Equals(attr.Key, "HealthCheck", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    healthCheck.Add(attr.Value);
-                }
-                else if (string.Equals(attr.Key, "ExtraHealthCheck", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    extraHealthChecksUrlLookup = attr.Value;
-                }
-                else if (string.Equals(attr.Key, "ExtraHealthCheck_Prefix",
-                             StringComparison.InvariantCultureIgnoreCase))
-                {
-                    extraHealthChecksPrefix = attr.Value;
-                }
-                else if (string.Equals(attr.Key, "BaseUrl", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    baseUrl = attr.Value;
-                }
-                else if (attr.Key.StartsWith("HealthCheck_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    healthCheck.Add(attr.Value);
-                }
-            }
+            AttributeParsing(instance);
 
             if (string.IsNullOrWhiteSpace(baseUrl)) continue;
 
@@ -118,7 +115,7 @@ public class DestFileSdConfig
             {
                 foreach (var endpoint in healthCheck)
                 {
-                    targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                    AddTarget(MakeSafeUrl(baseUrl, endpoint));
                 }
             }
 
@@ -140,11 +137,11 @@ public class DestFileSdConfig
                             if (!string.IsNullOrWhiteSpace(extraHealthChecksPrefix))
                             {
                                 string prefix = MakeSafeUrl(baseUrl, extraHealthChecksPrefix);
-                                targets.Add(MakeSafeUrl(prefix, endpoint));
+                                AddTarget(MakeSafeUrl(prefix, endpoint));
                             }
                             else
                             {
-                                targets.Add(MakeSafeUrl(baseUrl, endpoint));
+                                AddTarget(MakeSafeUrl(baseUrl, endpoint));
                             }
                         }
                     }
@@ -156,21 +153,48 @@ public class DestFileSdConfig
                 }
             }
 
-            foreach (var l in instance.Labels)
-            {
-                labels.TryAdd(l.Key, l.Value);
-            }
+            AddLabels(instance);
         }
-
-
-        return new DestFileSdConfig(targets, setting, labels);
     }
 
-    [JsonPropertyName("targets")] public string[] Targets => _targets.ToArray();
+    protected virtual void AddTarget(string url)
+    {
+        if (setting.IgnoreList != null
+            && (setting.IgnoreList.Contains(url)
+                || setting.IgnoreList.Any(ignoredUrl => url.StartsWith(ignoredUrl))
+            )
+           )
+        {
+            return;
+        }
 
-    [JsonPropertyName("labels")] public Dictionary<string, string> Labels { get; private init; }
+        targets.Add(url);
+    }
 
-    private static string MakeSafeUrl(string protocolAndDomain, string path)
+    private void AddLabels(ServiceInfo serviceInfo)
+    {
+        if (setting.LowercaseLabels)
+        {
+            foreach (var item in serviceInfo.Labels)
+            {
+                Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+            }
+        }
+        else
+        {
+            foreach (var l in serviceInfo.Labels)
+            {
+                Labels.TryAdd(l.Key, l.Value);
+            }
+        }
+    }
+    
+    [JsonPropertyName("targets")] public string[] Targets => targets.ToArray();
+
+    [JsonPropertyName("labels")]
+    public SortedDictionary<string, string> Labels { get; private init; } = new SortedDictionary<string, string>();
+
+    protected static string MakeSafeUrl(string protocolAndDomain, string path)
     {
         protocolAndDomain = protocolAndDomain.TrimEnd('/');
         path = path.TrimStart('/');

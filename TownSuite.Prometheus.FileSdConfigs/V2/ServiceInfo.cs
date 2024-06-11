@@ -18,7 +18,7 @@ public class ServiceInfo
     public Dictionary<string, string> Labels { get; set; }
 
     /// <summary>
-    /// IP/url, port, data center, BaseUrl, HealthCheckUrl etc.   Any other details that might need to be tracked.
+    /// IP/url, port, data center, BaseUrl, HealthCheckUrl, PrometheusMetricsUrl, OpenTelemetryUrl etc.   Any other details that might need to be tracked.
     /// </summary>
     public Dictionary<string, string> Attributes { get; set; }
 }
