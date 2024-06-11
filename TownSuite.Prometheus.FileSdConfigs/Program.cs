@@ -102,6 +102,10 @@ async Task V2(HttpClient httpClient)
 
 async Task PrometheusMetrics(HttpClient httpClient)
 {
+    if (string.IsNullOrWhiteSpace(appSettings.OutputPathPrometheusMetrics))
+    {
+        return;
+    }
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathPrometheusMetrics, FileMode.Create);
@@ -110,6 +114,11 @@ async Task PrometheusMetrics(HttpClient httpClient)
 
 async Task OpenTelemetryMetrics(HttpClient httpClient)
 {
+    if (string.IsNullOrWhiteSpace(appSettings.OutputPathOpenTelemetry))
+    {
+        return;
+    }
+    
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathOpenTelemetry, FileMode.Create);
