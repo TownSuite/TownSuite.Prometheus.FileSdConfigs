@@ -44,7 +44,7 @@ __appsettings.json__ example
     "OutputPath": "targets.json",
     "OutputPathV2": "targets_v2.json",
     "OutputPathPrometheusMetrics": "targets_prometheus_metrics.json",
-    "OutputPathOpenTelemetry": "targets_open_telemetry_metricsjson"
+    "OutputPathOpenTelemetry": "targets_open_telemetry_metrics.json"
   },
   "Settings": [
     {
