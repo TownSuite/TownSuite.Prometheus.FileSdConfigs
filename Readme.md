@@ -21,9 +21,12 @@ dotnet publish -c Release -r win-x64 -p:PublishReadyToRun=true --self-contained 
 # Runtime identifiers
 If a different target is required, review https://docs.microsoft.com/en-us/dotnet/core/rid-catalog for a full listing.
 
-# 
 
-Produces a single executable file __TownSuite.Prometheus.FileSdConfigs__.   Configure in appsettings.json file in the same folder as the executable.
+Produces a single executable file __TownSuite.Prometheus.FileSdConfigs__.   
+
+# appsettings.json
+
+Configure in appsettings.json file in the same folder as the executable.
 
 __appsettings.json__ example
 ```json
@@ -117,4 +120,59 @@ WorkingDirectory=/opt/TownSuite.Prometheus.FileSdConfigs/
 [Install]
 WantedBy=multi-user.target
 ```
+
+# prometheus.yml
+
+This example configures the Prometheus metrics and rewrites both http and https and custom metric endpoints.   Secondly it configures prometheus to do health checks via the blackbox exporter.
+
+```bash
+sudo apt install prometheus
+```
+
+/etc/prometheus/prometheus.yml
+
+```yaml
+  - job_name: metrics_service_discovery
+    scheme: http
+    file_sd_configs:
+    - files:
+       - /opt/TownSuite.Prometheus.FileSdConfigs/targets_prometheus_metrics.json
+    scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __scheme__
+        replacement: '${1}'
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __address__
+        replacement: '${2}'
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __metrics_path__
+        replacement: '${3}'
+      - source_labels: [__metrics_path__]
+        regex: '^$'
+        replacement: '/metrics'
+        target_label: __metrics_path__
+
+  # Health Checks via Blackbox Exporter
+  - job_name: health_checks_service_discovery
+    file_sd_configs:
+    - files:
+       - /opt/TownSuite.Prometheus.FileSdConfigs/targets_v2.json
+    scrape_interval: 60s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+```
+
 
