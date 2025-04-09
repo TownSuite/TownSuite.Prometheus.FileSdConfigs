@@ -73,6 +73,7 @@ try
         await V1(httpClient);
         await V2(httpClient);
         await PrometheusMetrics(httpClient);
+        await DnsSD(httpClient);
 
         logger.LogInformation($"Waiting for {appSettings.DelayInSeconds} seconds.");
         await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
@@ -86,6 +87,11 @@ catch (Exception ex)
 
 async Task V1(HttpClient httpClient)
 {
+    if (string.IsNullOrWhiteSpace(appSettings.OutputPath))
+    {
+        return;
+    }
+    
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings);
     await using var fs = new FileStream(appSettings.OutputPath, FileMode.Create);
@@ -94,6 +100,11 @@ async Task V1(HttpClient httpClient)
 
 async Task V2(HttpClient httpClient)
 {
+    if (string.IsNullOrWhiteSpace(appSettings.OutputPathV2))
+    {
+        return;
+    }
+
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathV2, FileMode.Create);
@@ -125,3 +136,15 @@ async Task OpenTelemetryMetrics(HttpClient httpClient)
     await sd.GenerateTargetFile(fs);
 }
 
+async Task DnsSD(HttpClient httpClient)
+{
+    if (string.IsNullOrWhiteSpace(appSettings.OutputPathDns))
+    {
+        return;
+    }
+    
+    var client = new Client(httpClient);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscoveryDns(client, settings, appSettings);
+    await using var fs = new FileStream(appSettings.OutputPathDns, FileMode.Create);
+    await sd.GenerateTargetFile(fs);
+}

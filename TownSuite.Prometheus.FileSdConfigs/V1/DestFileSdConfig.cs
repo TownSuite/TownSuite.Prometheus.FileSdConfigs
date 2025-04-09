@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
+using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 
 namespace TownSuite.Prometheus.FileSdConfigs.V1;
@@ -78,6 +79,27 @@ public class DestFileSdConfig
         return new DestFileSdConfig(targets, setting);
     }
 
+    public static DestFileSdConfig CreateDnsTargets(IEnumerable<string> retrievedHosts, Settings setting,
+        Client client, AppSettings appSettings, ReadOnlyCollection<DestFileSdConfig> existingTargets)
+    {
+        List<string> targets = new List<string>();
+        foreach (var url in retrievedHosts)
+        {
+            if (setting.IgnoreList != null && setting.IgnoreList.Contains(url))
+            {
+                continue;
+            }
+
+            string safeUrl = MakeDnsSafeUrl(url);
+            if (!targets.Contains(safeUrl) && !existingTargets.Any(t => t.Targets.Contains(safeUrl)))
+            {
+                targets.Add(safeUrl);
+            }
+        }
+
+        return new DestFileSdConfig(targets, setting);
+    }
+    
     [JsonPropertyName("targets")] public string[] Targets => _targets.ToArray();
 
     [JsonPropertyName("labels")] public Dictionary<string, string> Labels { get; private init; }
@@ -87,5 +109,18 @@ public class DestFileSdConfig
         protocolAndDomain = protocolAndDomain.TrimEnd('/');
         path = path.TrimStart('/');
         return $"{protocolAndDomain}/{path}";
+    }
+    
+    private static string MakeDnsSafeUrl(string url)
+    {
+        try
+        {
+            Uri uri = new Uri(url);
+            return $"{uri.Scheme}://{uri.Host}";
+        }
+        catch (UriFormatException)
+        {
+            return url;
+        }
     }
 }

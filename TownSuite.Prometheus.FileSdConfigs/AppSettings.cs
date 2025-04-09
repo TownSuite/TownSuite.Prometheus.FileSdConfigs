@@ -8,4 +8,5 @@ public class AppSettings
     public string OutputPathV2 { get; init; }
     public string OutputPathPrometheusMetrics { get; init; }
     public string OutputPathOpenTelemetry { get; init; }
+    public string OutputPathDns { get; init; }
 }
