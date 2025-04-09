@@ -35,7 +35,11 @@ public class ServiceDiscovery
                 retrievedHosts = JsonSerializer.Deserialize<string[]>(System.IO.File.ReadAllText(setting.LookupUrl));
             }
 
-            targets.Add(await DestFileSdConfig.Create(retrievedHosts, setting, _client, _appSettings));
+            var processedTargets = await DestFileSdConfig.Create(retrievedHosts, setting, _client, _appSettings);
+            if (processedTargets.Targets.Any())
+            {
+                targets.Add(processedTargets);
+            }
         }
 
 

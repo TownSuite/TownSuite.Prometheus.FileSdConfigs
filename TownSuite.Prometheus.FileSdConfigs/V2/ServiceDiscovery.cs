@@ -66,8 +66,8 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
                 }
 
                 await target.Read(key);
-
-                if (target != null)
+                
+                if (target != null && target.Targets.Any())
                 {
                     targets.Add(target as T);
                 }
