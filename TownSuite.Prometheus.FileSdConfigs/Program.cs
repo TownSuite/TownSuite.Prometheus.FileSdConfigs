@@ -144,7 +144,7 @@ async Task DnsSD(HttpClient httpClient)
     }
     
     var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscoveryDns(client, settings, appSettings);
+    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DnsDestFileSdConfig>(client, settingsV2, appSettings, logger);
     await using var fs = new FileStream(appSettings.OutputPathDns, FileMode.Create);
     await sd.GenerateTargetFile(fs);
 }

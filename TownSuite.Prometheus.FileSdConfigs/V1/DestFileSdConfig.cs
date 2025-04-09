@@ -78,27 +78,7 @@ public class DestFileSdConfig
 
         return new DestFileSdConfig(targets, setting);
     }
-
-    public static DestFileSdConfig CreateDnsTargets(IEnumerable<string> retrievedHosts, Settings setting,
-        Client client, AppSettings appSettings, ReadOnlyCollection<DestFileSdConfig> existingTargets)
-    {
-        List<string> targets = new List<string>();
-        foreach (var url in retrievedHosts)
-        {
-            if (setting.IgnoreList != null && setting.IgnoreList.Contains(url))
-            {
-                continue;
-            }
-
-            string safeUrl = MakeDnsSafeUrl(url);
-            if (!targets.Contains(safeUrl) && !existingTargets.Any(t => t.Targets.Contains(safeUrl)))
-            {
-                targets.Add(safeUrl);
-            }
-        }
-
-        return new DestFileSdConfig(targets, setting);
-    }
+    
     
     [JsonPropertyName("targets")] public string[] Targets => _targets.ToArray();
 
@@ -111,16 +91,4 @@ public class DestFileSdConfig
         return $"{protocolAndDomain}/{path}";
     }
     
-    private static string MakeDnsSafeUrl(string url)
-    {
-        try
-        {
-            Uri uri = new Uri(url);
-            return $"{uri.Scheme}://{uri.Host}";
-        }
-        catch (UriFormatException)
-        {
-            return url;
-        }
-    }
 }

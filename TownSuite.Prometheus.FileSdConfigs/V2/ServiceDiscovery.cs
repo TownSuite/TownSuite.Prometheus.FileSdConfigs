@@ -60,6 +60,12 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
                 {
                     target = new OpenTelemetryDestFileSdConfig(_appSettings, _logger, setting, _client);
                 }
+                else  if (this.GetType() ==
+                          typeof(TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<
+                              TownSuite.Prometheus.FileSdConfigs.V2.DnsDestFileSdConfig>))
+                {
+                    target = new DnsDestFileSdConfig(_appSettings, _logger, setting, _client);
+                }
                 else
                 {
                     target = new DestFileSdConfig(_appSettings, _logger, setting, _client);

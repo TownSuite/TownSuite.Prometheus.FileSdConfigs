@@ -29,9 +29,9 @@ namespace TownSuite.Prometheus.FileSdConfigs.V2;
 
 public class DestFileSdConfig
 {
-    private readonly AppSettings appSettings;
-    private readonly ILogger logger;
-    private readonly SortedSet<string> targets = new();
+    protected readonly AppSettings appSettings;
+    protected readonly ILogger logger;
+    protected readonly SortedSet<string> targets = new();
 
     #region Per Service Loop
 
@@ -48,8 +48,8 @@ public class DestFileSdConfig
 
     #endregion
 
-    private readonly Settings setting;
-    private readonly Client client;
+    protected readonly Settings setting;
+    protected readonly Client client;
 
     public DestFileSdConfig(AppSettings appSettings, ILogger logger,
         Settings setting, Client client)
@@ -88,7 +88,7 @@ public class DestFileSdConfig
         }
     }
 
-    public async Task Read(string key)
+    public virtual async Task Read(string key)
     {
         DiscoverValues json = null;
         json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
@@ -168,7 +168,10 @@ public class DestFileSdConfig
             return;
         }
 
-        targets.Add(url);
+        if (!targets.Contains(url) && !targets.Any(t => t.Contains(url)))
+        {
+            targets.Add(url);
+        } 
     }
 
     private void AddLabels(ServiceInfo serviceInfo)
@@ -194,10 +197,12 @@ public class DestFileSdConfig
     [JsonPropertyName("labels")]
     public SortedDictionary<string, string> Labels { get; private init; } = new SortedDictionary<string, string>();
 
-    protected static string MakeSafeUrl(string protocolAndDomain, string path)
+    protected virtual string MakeSafeUrl(string protocolAndDomain, string path)
     {
         protocolAndDomain = protocolAndDomain.TrimEnd('/');
         path = path.TrimStart('/');
         return $"{protocolAndDomain}/{path}";
     }
+    
+
 }
