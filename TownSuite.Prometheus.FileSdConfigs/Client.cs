@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace TownSuite.Prometheus.FileSdConfigs;
 
@@ -26,7 +27,12 @@ public class Client
 
         if (response.IsSuccessStatusCode)
         {
-            return await response.Content.ReadFromJsonAsync<T>();
+            return await response.Content.ReadFromJsonAsync<T>(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                {
+                    PropertyNameCaseInsensitive = true,
+                    TypeInfoResolver =  SerializeOnlyContext.Default
+                });
         }
 
         return default(T);
