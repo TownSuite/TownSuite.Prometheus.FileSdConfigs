@@ -43,8 +43,7 @@ public class ServiceDiscovery
         }
 
 
-        string jsonString = JsonSerializer.Serialize(targets);
-
+        string jsonString = JsonSerializer.Serialize(targets, SerializeOnlyContext.Default.DestFileSdConfig);
         await using var sw = new StreamWriter(output);
         await sw.WriteAsync(jsonString);
     }
