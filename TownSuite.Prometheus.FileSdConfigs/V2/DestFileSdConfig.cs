@@ -174,7 +174,7 @@ public class DestFileSdConfig
         } 
     }
 
-    private void AddLabels(ServiceInfo serviceInfo)
+    protected virtual void AddLabels(ServiceInfo serviceInfo)
     {
         if (setting.LowercaseLabels)
         {

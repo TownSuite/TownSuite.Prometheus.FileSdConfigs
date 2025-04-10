@@ -4,12 +4,13 @@ namespace TownSuite.Prometheus.FileSdConfigs.V2;
 
 public class DnsDestFileSdConfig : DestFileSdConfig
 {
+    private string _key;
+    
     public DnsDestFileSdConfig(AppSettings appSettings, ILogger logger, Settings setting, Client client) : base(
         appSettings, logger, setting, client)
     {
     }
-
-    private string environmentLabel;
+    
     protected override void AttributeParsing(ServiceInfo serviceInfo)
     {
         foreach (var attr in serviceInfo.Attributes)
@@ -18,9 +19,38 @@ public class DnsDestFileSdConfig : DestFileSdConfig
             {
                 baseUrl = attr.Value;
             }
-            else if (string.Equals(attr.Key, "env", StringComparison.InvariantCultureIgnoreCase))
+        }
+    }
+    
+    protected override void AddLabels(ServiceInfo serviceInfo)
+    {
+        Labels.TryAdd("job", "dns_prober");
+        Labels.TryAdd("service", _key);
+        
+        if (setting.LowercaseLabels)
+        {
+            foreach (var item in serviceInfo.Labels)
             {
-                environmentLabel = attr.Value;
+                if (string.Equals(item.Key, "job", StringComparison.InvariantCultureIgnoreCase)
+                    || string.Equals(item.Key, "service", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    continue;
+                }
+                
+                Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+            }
+        }
+        else
+        {
+            foreach (var l in serviceInfo.Labels)
+            {
+                if (string.Equals(l.Key, "job", StringComparison.InvariantCultureIgnoreCase)
+                    || string.Equals(l.Key, "service", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    continue;
+                }
+
+                Labels.TryAdd(l.Key, l.Value);
             }
         }
     }
@@ -41,6 +71,8 @@ public class DnsDestFileSdConfig : DestFileSdConfig
 
     public override async Task Read(string key)
     {
+        _key = key;
+        
         DiscoverValues json = null;
         json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
             $"{setting.ServiceDiscoverUrl}{key}", appSettings);
@@ -54,21 +86,13 @@ public class DnsDestFileSdConfig : DestFileSdConfig
         foreach (var instance in json.Services)
         {
             baseUrl = String.Empty;
-            environmentLabel = String.Empty;
-            
             
             AttributeParsing(instance);
-
+            
             if (string.IsNullOrWhiteSpace(baseUrl)) continue;
-
-
+            
+            AddLabels(instance);
             AddTarget(baseUrl);
-            Labels.TryAdd("job", "dns_prober");
-            Labels.TryAdd("service", key);
-            if (!string.IsNullOrWhiteSpace(environmentLabel))
-            {
-                Labels.TryAdd("env", environmentLabel);
-            }
         }
     }
 }

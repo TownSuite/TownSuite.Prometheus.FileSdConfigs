@@ -475,7 +475,7 @@ public class SdTargetFileTest
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
 
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"job\":\"dns_prober\",\"service\":\"Service1\"}},{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"job\":\"dns_prober\",\"service\":\"Service2\"}},{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"job\":\"dns_prober\",\"service\":\"Service3\"}}]";
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"Env\":\"test\",\"job\":\"dns_prober\",\"service\":\"Service1\"}},{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"Env\":\"test\",\"job\":\"dns_prober\",\"service\":\"Service2\"}},{\"targets\":[\"https://service1.test.site.townsuite.com\",\"https://service2.test.site.townsuite.com\"],\"labels\":{\"Env\":\"test\",\"job\":\"dns_prober\",\"service\":\"Service3\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
     }
 }
