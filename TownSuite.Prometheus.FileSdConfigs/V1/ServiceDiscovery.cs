@@ -41,9 +41,8 @@ public class ServiceDiscovery
                 targets.Add(processedTargets);
             }
         }
-
-
-        string jsonString = JsonSerializer.Serialize(targets, SerializeOnlyContext.Default.DestFileSdConfig);
+        
+        string jsonString = JsonSerializer.Serialize(targets, JsonOptions.GetSerilizer);
         await using var sw = new StreamWriter(output);
         await sw.WriteAsync(jsonString);
     }

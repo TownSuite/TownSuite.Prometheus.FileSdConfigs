@@ -80,7 +80,7 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
             }
         }
 
-        string jsonString = JsonSerializer.Serialize(targets, SerializeOnlyContext.Default.DestFileSdConfig);
+        string jsonString = JsonSerializer.Serialize(targets, JsonOptions.GetSerilizer);
 
         await using var sw = new StreamWriter(output);
         await sw.WriteAsync(jsonString);
