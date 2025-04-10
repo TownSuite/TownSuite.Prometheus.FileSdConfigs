@@ -9,6 +9,7 @@ public class DnsDestFileSdConfig : DestFileSdConfig
     {
     }
 
+    private string environmentLabel;
     protected override void AttributeParsing(ServiceInfo serviceInfo)
     {
         foreach (var attr in serviceInfo.Attributes)
@@ -16,6 +17,10 @@ public class DnsDestFileSdConfig : DestFileSdConfig
             if (string.Equals(attr.Key, "BaseUrl", StringComparison.InvariantCultureIgnoreCase))
             {
                 baseUrl = attr.Value;
+            }
+            else if (string.Equals(attr.Key, "env", StringComparison.InvariantCultureIgnoreCase))
+            {
+                environmentLabel = attr.Value;
             }
         }
     }
@@ -49,7 +54,9 @@ public class DnsDestFileSdConfig : DestFileSdConfig
         foreach (var instance in json.Services)
         {
             baseUrl = String.Empty;
-
+            environmentLabel = String.Empty;
+            
+            
             AttributeParsing(instance);
 
             if (string.IsNullOrWhiteSpace(baseUrl)) continue;
@@ -58,6 +65,10 @@ public class DnsDestFileSdConfig : DestFileSdConfig
             AddTarget(baseUrl);
             Labels.TryAdd("job", "dns_prober");
             Labels.TryAdd("service", key);
+            if (!string.IsNullOrWhiteSpace(environmentLabel))
+            {
+                Labels.TryAdd("env", environmentLabel);
+            }
         }
     }
 }
