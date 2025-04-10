@@ -9,4 +9,5 @@ public class AppSettings
     public string OutputPathPrometheusMetrics { get; init; }
     public string OutputPathOpenTelemetry { get; init; }
     public string OutputPathDns { get; init; }
+    public int HttpTimeoutInSeconds { get; init; }
 }

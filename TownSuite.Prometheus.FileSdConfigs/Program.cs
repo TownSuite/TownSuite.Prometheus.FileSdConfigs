@@ -68,7 +68,9 @@ try
     while (true)
     {
         logger.LogInformation("Process starting");
-        using var httpClient = new HttpClient();
+        using var httpClient = new HttpClient(){
+            Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
+        };
 
         await V1(httpClient);
         await V2(httpClient);
