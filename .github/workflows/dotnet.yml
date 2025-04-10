@@ -35,7 +35,7 @@ jobs:
         with:
           name: linux-x64
           path: |
-            TownSuite.Prometheus.FileSdConfigs/bin/Release/net6.0/linux-x64
+            TownSuite.Prometheus.FileSdConfigs/bin/Release/net8.0/linux-x64
           retention-days: 1
 
   windows-build:
