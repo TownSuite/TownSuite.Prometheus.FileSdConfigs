@@ -96,8 +96,12 @@ async Task V1(HttpClient httpClient)
     
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings);
-    await using var fs = new FileStream(appSettings.OutputPath, FileMode.Create);
-    await sd.GenerateTargetFile(fs);
+    string tempPath = $"{appSettings.OutputPath}.tmp";
+    await using (var fs = new FileStream(tempPath, FileMode.Create))
+    {
+        await sd.GenerateTargetFile(fs);
+    }
+    File.Move(tempPath, appSettings.OutputPath, true);
 }
 
 async Task V2(HttpClient httpClient)
@@ -109,8 +113,12 @@ async Task V2(HttpClient httpClient)
 
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger);
-    await using var fs = new FileStream(appSettings.OutputPathV2, FileMode.Create);
-    await sd.GenerateTargetFile(fs);
+    string tempPath = $"{appSettings.OutputPathV2}.tmp";
+    await using (var fs = new FileStream(tempPath, FileMode.Create))
+    {
+        await sd.GenerateTargetFile(fs);
+    }
+    File.Move(tempPath, appSettings.OutputPathV2, true);
 }
 
 async Task PrometheusMetrics(HttpClient httpClient)
@@ -121,8 +129,13 @@ async Task PrometheusMetrics(HttpClient httpClient)
     }
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    await using var fs = new FileStream(appSettings.OutputPathPrometheusMetrics, FileMode.Create);
-    await sd.GenerateTargetFile(fs);
+    string tempPath = $"{appSettings.OutputPathPrometheusMetrics}.tmp";
+    await using (var fs = new FileStream(tempPath, FileMode.Create))
+    {
+        await sd.GenerateTargetFile(fs);
+    }
+    
+    File.Move(tempPath, appSettings.OutputPathPrometheusMetrics, true);
 }
 
 async Task OpenTelemetryMetrics(HttpClient httpClient)
@@ -134,8 +147,12 @@ async Task OpenTelemetryMetrics(HttpClient httpClient)
     
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    await using var fs = new FileStream(appSettings.OutputPathOpenTelemetry, FileMode.Create);
-    await sd.GenerateTargetFile(fs);
+    string tempPath = $"{appSettings.OutputPathOpenTelemetry}.tmp";
+    await using (var fs = new FileStream(tempPath, FileMode.Create))
+    {
+        await sd.GenerateTargetFile(fs);
+    }
+    File.Move(tempPath, appSettings.OutputPathOpenTelemetry, true);
 }
 
 async Task DnsSD(HttpClient httpClient)
@@ -147,6 +164,10 @@ async Task DnsSD(HttpClient httpClient)
     
     var client = new Client(httpClient);
     var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DnsDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    await using var fs = new FileStream(appSettings.OutputPathDns, FileMode.Create);
-    await sd.GenerateTargetFile(fs);
+    string tempPath = $"{appSettings.OutputPathDns}.tmp";
+    await using (var fs = new FileStream(tempPath, FileMode.Create))
+    {
+        await sd.GenerateTargetFile(fs);
+    }
+    File.Move(tempPath, appSettings.OutputPathDns, true);
 }
