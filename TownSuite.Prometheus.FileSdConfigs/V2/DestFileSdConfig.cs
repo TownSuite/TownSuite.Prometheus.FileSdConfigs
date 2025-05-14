@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace TownSuite.Prometheus.FileSdConfigs.V2;
@@ -31,7 +30,6 @@ public class DestFileSdConfig
 {
     protected readonly AppSettings appSettings;
     protected readonly ILogger logger;
-    protected readonly SortedSet<string> targets = new();
 
     #region Per Service Loop
 
@@ -50,6 +48,9 @@ public class DestFileSdConfig
 
     protected readonly Settings setting;
     protected readonly Client client;
+
+    protected List<DestinationBase> results = new();
+    protected DestinationBase current;
 
     public DestFileSdConfig(AppSettings appSettings, ILogger logger,
         Settings setting, Client client)
@@ -88,7 +89,7 @@ public class DestFileSdConfig
         }
     }
 
-    public virtual async Task Read(string key)
+    public virtual async Task<DestinationBase[]> Read(string key)
     {
         DiscoverValues json = null;
         json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
@@ -97,11 +98,12 @@ public class DestFileSdConfig
         if (json?.Services == null)
         {
             logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
-            return;
+            return new DestinationBase[0];
         }
-        
+
         foreach (var instance in json.Services)
         {
+            current = new DestinationBase();
             healthCheck.Clear();
             extraHealthChecksUrlLookup = String.Empty;
             extraHealthChecksPrefix = String.Empty;
@@ -154,7 +156,10 @@ public class DestFileSdConfig
             }
 
             AddLabels(instance);
+            results.Add(current);
         }
+
+        return results.ToArray();
     }
 
     protected virtual void AddTarget(string url)
@@ -168,10 +173,10 @@ public class DestFileSdConfig
             return;
         }
 
-        if (!targets.Contains(url) && !targets.Any(t => t.Contains(url)))
+        if (!current.Targets.Contains(url) && !current.Targets.Any(t => t.Contains(url)))
         {
-            targets.Add(url);
-        } 
+            current.Targets.Add(url);
+        }
     }
 
     protected virtual void AddLabels(ServiceInfo serviceInfo)
@@ -180,22 +185,17 @@ public class DestFileSdConfig
         {
             foreach (var item in serviceInfo.Labels)
             {
-                Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+                current.Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
             }
         }
         else
         {
             foreach (var l in serviceInfo.Labels)
             {
-                Labels.TryAdd(l.Key, l.Value);
+                current.Labels.TryAdd(l.Key, l.Value);
             }
         }
     }
-    
-    [JsonPropertyName("targets")] public string[] Targets => targets.ToArray();
-
-    [JsonPropertyName("labels")]
-    public SortedDictionary<string, string> Labels { get; private init; } = new SortedDictionary<string, string>();
 
     protected virtual string MakeSafeUrl(string protocolAndDomain, string path)
     {
@@ -203,6 +203,4 @@ public class DestFileSdConfig
         path = path.TrimStart('/');
         return $"{protocolAndDomain}/{path}";
     }
-    
-
 }

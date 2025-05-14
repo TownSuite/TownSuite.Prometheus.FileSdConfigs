@@ -24,8 +24,8 @@ public class DnsDestFileSdConfig : DestFileSdConfig
     
     protected override void AddLabels(ServiceInfo serviceInfo)
     {
-        Labels.TryAdd("job", "dns_prober");
-        Labels.TryAdd("service", _key);
+        current.Labels.TryAdd("job", "dns_prober");
+        current.Labels.TryAdd("service", _key);
         
         if (setting.LowercaseLabels)
         {
@@ -37,7 +37,7 @@ public class DnsDestFileSdConfig : DestFileSdConfig
                     continue;
                 }
                 
-                Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
+                current.Labels.TryAdd(item.Key.ToLower().Trim(), item.Value.ToLower().Trim());
             }
         }
         else
@@ -50,7 +50,7 @@ public class DnsDestFileSdConfig : DestFileSdConfig
                     continue;
                 }
 
-                Labels.TryAdd(l.Key, l.Value);
+                current.Labels.TryAdd(l.Key, l.Value);
             }
         }
     }
@@ -69,9 +69,10 @@ public class DnsDestFileSdConfig : DestFileSdConfig
         }
     }
 
-    public override async Task Read(string key)
+    public override async Task<DestinationBase[]> Read(string key)
     {
         _key = key;
+        current = new DestinationBase();
         
         DiscoverValues json = null;
         json = await client.GetJsonFromContent<DiscoverValues>(setting.AuthHeader,
@@ -80,7 +81,7 @@ public class DnsDestFileSdConfig : DestFileSdConfig
         if (json?.Services == null)
         {
             logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
-            return;
+            return new DestinationBase[0];
         }
 
         foreach (var instance in json.Services)
@@ -93,6 +94,8 @@ public class DnsDestFileSdConfig : DestFileSdConfig
             
             AddLabels(instance);
             AddTarget(baseUrl);
+            results.Add(current);
         }
+        return results.ToArray();
     }
 }

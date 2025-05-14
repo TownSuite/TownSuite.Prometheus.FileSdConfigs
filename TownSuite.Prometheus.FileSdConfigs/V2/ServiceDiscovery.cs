@@ -19,7 +19,7 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
         _logger = logger;
     }
 
-    protected virtual List<T> targets { get; set; } = new List<T>();
+    protected virtual List<DestinationBase> targets { get; set; } = new ();
 
     public async Task GenerateTargetFile(Stream output)
     {
@@ -47,35 +47,41 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
             {
                 string key = fullKey.Split(".")[0];
 
-                DestFileSdConfig target;
+                DestFileSdConfig destImplimentation;
                 if (this.GetType() ==
                     typeof(TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<
                         TownSuite.Prometheus.FileSdConfigs.V2.PrometheusMetricsDestFileSdConfig>))
                 {
-                    target = new PrometheusMetricsDestFileSdConfig(_appSettings, _logger, setting, _client);
+                    destImplimentation = new PrometheusMetricsDestFileSdConfig(_appSettings, _logger, setting, _client);
                 }
                 else  if (this.GetType() ==
                           typeof(TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<
                               TownSuite.Prometheus.FileSdConfigs.V2.OpenTelemetryDestFileSdConfig>))
                 {
-                    target = new OpenTelemetryDestFileSdConfig(_appSettings, _logger, setting, _client);
+                    destImplimentation = new OpenTelemetryDestFileSdConfig(_appSettings, _logger, setting, _client);
                 }
                 else  if (this.GetType() ==
                           typeof(TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<
                               TownSuite.Prometheus.FileSdConfigs.V2.DnsDestFileSdConfig>))
                 {
-                    target = new DnsDestFileSdConfig(_appSettings, _logger, setting, _client);
+                    destImplimentation = new DnsDestFileSdConfig(_appSettings, _logger, setting, _client);
                 }
                 else
                 {
-                    target = new DestFileSdConfig(_appSettings, _logger, setting, _client);
+                    destImplimentation = new DestFileSdConfig(_appSettings, _logger, setting, _client);
                 }
 
-                await target.Read(key);
                 
-                if (target != null && target.Targets.Any())
+                var results = await destImplimentation.Read(key);
+                foreach (var target in results)
                 {
-                    targets.Add(target as T);
+                    if (target != null && target.Targets.Any())
+                    {
+                        if (!targets.Contains(target))
+                        {
+                            targets.Add(target);
+                        }
+                    }
                 }
             }
         }

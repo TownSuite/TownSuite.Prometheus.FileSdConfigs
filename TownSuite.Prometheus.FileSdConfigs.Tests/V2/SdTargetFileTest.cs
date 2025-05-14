@@ -64,7 +64,7 @@ public class SdTargetFileTest
 
 
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
     }
 
@@ -129,7 +129,7 @@ public class SdTargetFileTest
 
         Console.WriteLine(actualJson);
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/example1\",\"https://service1.test.site.townsuite.com/healthz/example2\",\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/example1\",\"https://service1.test.site.townsuite.com/healthz/example2\",\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/example1\",\"https://service1.test.site.townsuite.com/healthz/example2\",\"https://service1.test.site.townsuite.com/healthz/ready\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
     }
 
@@ -194,7 +194,7 @@ public class SdTargetFileTest
 
 
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/hello/world\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/world/hello\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/hello/world\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/world/hello\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/hello/world\",\"https://service1.test.site.townsuite.com/healthz/ready/extras/world/hello\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
     }
 
@@ -255,7 +255,7 @@ public class SdTargetFileTest
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
 
         string expectedJson =
-            "[{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
     }
 
@@ -298,10 +298,11 @@ public class SdTargetFileTest
         returnValues.Services[0].Attributes.Add("DataCenter", "testing");
         returnValues.Services[0].Labels.Add("Env", "test");
         returnValues.Services[0].Labels.Add("Job", "unittest");
+        returnValues.Services[0].Attributes.Add("PrometheusMetricsUrl", "/metrics1");
         returnValues.Services[1].Attributes.Add("HealthCheck", "/healthz/live");
         returnValues.Services[1].Attributes.Add("BaseUrl", "https://service2.test.site.townsuite.com");
         returnValues.Services[1].Attributes.Add("DataCenter", "testing2");
-        returnValues.Services[1].Attributes.Add("PrometheusMetricsUrl", "/metrics");
+        returnValues.Services[1].Attributes.Add("PrometheusMetricsUrl", "/metrics2");
         returnValues.Services[1].Labels.Add("Env", "test2");
         returnValues.Services[1].Labels.Add("Job", "unittest2");
         var client = new FakeClient(null,
@@ -316,9 +317,8 @@ public class SdTargetFileTest
         await sd.GenerateTargetFile(ms);
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
-        Assert.That(actualJson, Is.EqualTo(expectedJson));
-
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
+        
         using var ms2 = new MemoryStream();
         var sd2 = new ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, st.ToArray(), new AppSettings(),
             null);
@@ -327,8 +327,14 @@ public class SdTargetFileTest
         string actualJson2 = Encoding.UTF8.GetString(ms2.ToArray());
         Console.WriteLine(actualJson2);
         string expectedJson2 =
-            "[{\"targets\":[\"https://service2.test.site.townsuite.com/metrics\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/metrics\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
-        Assert.That(actualJson2, Is.EqualTo(expectedJson2));
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/metrics1\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/metrics2\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
+       
+        Assert.Multiple(() =>
+        {
+            Assert.That(actualJson, Is.EqualTo(expectedJson));
+            Assert.That(actualJson2, Is.EqualTo(expectedJson2));
+        });
+        
     }
 
     [Test]
@@ -387,7 +393,7 @@ public class SdTargetFileTest
         await sd.GenerateTargetFile(ms);
         string actualJson = Encoding.UTF8.GetString(ms.ToArray());
         string expectedJson =
-            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\",\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service1.test.site.townsuite.com/healthz/ready\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/healthz/live\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson, Is.EqualTo(expectedJson));
 
         using var ms2 = new MemoryStream();
@@ -397,7 +403,7 @@ public class SdTargetFileTest
         string actualJson2 = Encoding.UTF8.GetString(ms2.ToArray());
         Console.WriteLine(actualJson2);
         string expectedJson2 =
-            "[{\"targets\":[\"https://service2.test.site.townsuite.com/metrics\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}},{\"targets\":[\"https://service2.test.site.townsuite.com/metrics\"],\"labels\":{\"Env\":\"test\",\"Job\":\"unittest\"}}]";
+            "[{\"targets\":[\"https://service2.test.site.townsuite.com/metrics\"],\"labels\":{\"Env\":\"test2\",\"Job\":\"unittest2\"}}]";
         Assert.That(actualJson2, Is.EqualTo(expectedJson2));
     }
 

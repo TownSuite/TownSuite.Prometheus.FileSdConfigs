@@ -23,6 +23,8 @@ internal partial class SerializeOnlyContextV1 : JsonSerializerContext
 [JsonSerializable(typeof(List<V2.OpenTelemetryDestFileSdConfig>))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(V2.DiscoverValues))]
+[JsonSerializable(typeof(V2.DestinationBase))]
+[JsonSerializable(typeof(List<V2.DestinationBase>))]
 internal partial class SerializeOnlyContextV2 : JsonSerializerContext
 {
 }
