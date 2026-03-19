@@ -7,10 +7,10 @@ namespace TownSuite.Prometheus.FileSdConfigs.V1;
 public class ServiceDiscovery
 {
     private readonly Client _client;
-    private readonly Settings[] _settings;
+    private readonly SettingsV1[] _settings;
     private readonly AppSettings _appSettings;
 
-    public ServiceDiscovery(Client client, Settings[] settings, AppSettings appSettings)
+    public ServiceDiscovery(Client client, SettingsV1[] settings, AppSettings appSettings)
     {
         _client = client;
         _settings = settings;

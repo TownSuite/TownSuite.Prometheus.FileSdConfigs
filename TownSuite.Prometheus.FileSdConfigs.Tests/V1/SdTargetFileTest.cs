@@ -10,10 +10,10 @@ public class SdTargetFileTest
     public async Task SimpleTest()
     {
         using var ms = new MemoryStream();
-        var st = new List<Settings>();
+        var st = new List<SettingsV1>();
         var labels = new Dictionary<string, string>();
         labels.Add("job", "test");
-        st.Add(new Settings()
+        st.Add(new SettingsV1()
         {
             AppendPaths = new[] { "/healthz/live", "/healthz/ready" },
             AuthHeader = null,
@@ -43,10 +43,10 @@ public class SdTargetFileTest
     public async Task AppendPathAsUrlToLookupAppendPaths()
     {
         using var ms = new MemoryStream();
-        var st = new List<Settings>();
+        var st = new List<SettingsV1>();
         var labels = new Dictionary<string, string>();
         labels.Add("job", "test");
-        st.Add(new Settings()
+        st.Add(new SettingsV1()
         {
             AppendPaths = new[]
                 { "/healthz/live", "/healthz/ready", "https://a.test.site.townsuite.com/get_appendpaths" },

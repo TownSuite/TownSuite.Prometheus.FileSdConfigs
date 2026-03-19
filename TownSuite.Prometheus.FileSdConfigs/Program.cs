@@ -48,7 +48,7 @@ IConfiguration config = new ConfigurationBuilder()
 
 // Get values from the config given their key and their target type.
 var appSettings = config.GetRequiredSection("AppSettings").Get<AppSettings>();
-var settings = config.GetRequiredSection("Settings").Get<TownSuite.Prometheus.FileSdConfigs.V1.Settings[]>();
+var settings = config.GetRequiredSection("Settings").Get<TownSuite.Prometheus.FileSdConfigs.V1.SettingsV1[]>();
 var settingsV2 = config.GetRequiredSection("SettingsV2").Get<TownSuite.Prometheus.FileSdConfigs.V2.Settings[]>();
 
 

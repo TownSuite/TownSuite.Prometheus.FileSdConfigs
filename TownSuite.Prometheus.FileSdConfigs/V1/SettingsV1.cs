@@ -24,7 +24,7 @@ SOFTWARE.
 
 namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
-public class Settings
+public class SettingsV1
 {
     /// <summary>
     /// A service that can be called to lookup all base urls.

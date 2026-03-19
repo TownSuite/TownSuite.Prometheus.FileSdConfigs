@@ -29,7 +29,7 @@ namespace TownSuite.Prometheus.FileSdConfigs.V1;
 
 public class DestFileSdConfig
 {
-    public DestFileSdConfig(IEnumerable<string> targets, Settings setting)
+    public DestFileSdConfig(IEnumerable<string> targets, SettingsV1 setting)
     {
         foreach (var url in targets)
         {
@@ -46,7 +46,7 @@ public class DestFileSdConfig
 
     readonly List<string> _targets = new List<string>();
 
-    public static async Task<DestFileSdConfig> Create(IEnumerable<string> retrievedHosts, Settings setting,
+    public static async Task<DestFileSdConfig> Create(IEnumerable<string> retrievedHosts, SettingsV1 setting,
         Client client, AppSettings appSettings)
     {
         List<string> targets = new List<string>();
