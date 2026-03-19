@@ -13,23 +13,23 @@ jobs:
   linux-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
       - name: Restore dependencies
         run: dotnet restore TownSuite.Prometheus.FileSdConfigs.sln
       - name: Build
         run: dotnet build TownSuite.Prometheus.FileSdConfigs.sln --no-restore -c Release
       - name: Test
-        run: cwd=`pwd` && dotnet vstest "TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net8.0/TownSuite.Prometheus.FileSdConfigs.Tests.dll" --logger:"trx;LogFileName=$cwd/TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net8.0/nunit-result.trx"
+        run: cwd=`pwd` && dotnet vstest "TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net10.0/TownSuite.Prometheus.FileSdConfigs.Tests.dll" --logger:"trx;LogFileName=$cwd/TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net10.0/nunit-result.trx"
       - name: Archive test results
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
-            TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net8.0/nunit-result.trx
+            TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net10.0/nunit-result.trx
           retention-days: 1
       - name: Publish
         run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r linux-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
@@ -38,17 +38,17 @@ jobs:
         with:
           name: linux-x64
           path: |
-            TownSuite.Prometheus.FileSdConfigs/bin/Release/net8.0/linux-x64
+            TownSuite.Prometheus.FileSdConfigs/bin/Release/net10.0/linux-x64
           retention-days: 1
 
   windows-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
       - name: Restore dependencies
         run: dotnet restore TownSuite.Prometheus.FileSdConfigs.sln
       - name: Build
@@ -66,11 +66,11 @@ jobs:
   mac-build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
       - name: Restore dependencies
         run: dotnet restore TownSuite.Prometheus.FileSdConfigs.sln
       - name: Build
@@ -82,5 +82,5 @@ jobs:
         with:
           name: osx-x64
           path: |
-            TownSuite.Prometheus.FileSdConfigs/bin/Release/net8.0/osx-x64
+            TownSuite.Prometheus.FileSdConfigs/bin/Release/net10.0/osx-x64
           retention-days: 1
