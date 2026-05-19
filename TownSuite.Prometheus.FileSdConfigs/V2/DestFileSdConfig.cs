@@ -150,7 +150,7 @@ public class DestFileSdConfig
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"{finalExtraHealthCheckUrl} Extra Health Check return value is invalid");
+                    logger.LogError(ex, $"{finalExtraHealthCheckUrl} Extra Health Check return value is invalid");
                     continue;
                 }
             }

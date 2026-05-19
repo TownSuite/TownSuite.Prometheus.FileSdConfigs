@@ -10,4 +10,5 @@ public class AppSettings
     public string OutputPathOpenTelemetry { get; init; }
     public string OutputPathDns { get; init; }
     public int HttpTimeoutInSeconds { get; init; }
+    public bool SkipCertificateValidation { get; init; }
 }

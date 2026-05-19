@@ -68,9 +68,7 @@ try
     while (true)
     {
         logger.LogInformation("Process starting");
-        using var httpClient = new HttpClient(){
-            Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
-        };
+        using var httpClient = CreateHttpClient();
 
         await V1(httpClient);
         await V2(httpClient);
@@ -171,3 +169,26 @@ async Task DnsSD(HttpClient httpClient)
     }
     File.Move(tempPath, appSettings.OutputPathDns, true);
 }
+
+HttpClient CreateHttpClient()
+{
+    if (appSettings.SkipCertificateValidation)
+    {
+        var handler = new HttpClientHandler
+        {
+            // Allow self-signed certificates when explicitly enabled.
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+
+        return new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
+        };
+    }
+
+    return new HttpClient
+    {
+        Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
+    };
+}
+
