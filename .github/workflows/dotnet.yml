@@ -32,7 +32,7 @@ jobs:
             TownSuite.Prometheus.FileSdConfigs.Tests/bin/Release/net10.0/nunit-result.trx
           retention-days: 1
       - name: Publish
-        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r linux-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r linux-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=false
       - name: Archive artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
@@ -54,7 +54,7 @@ jobs:
       - name: Build
         run: dotnet build TownSuite.Prometheus.FileSdConfigs.sln --no-restore -c Release
       - name: Publish
-        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r win-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r win-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=false
       - name: Archive artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
@@ -76,7 +76,7 @@ jobs:
       - name: Build
         run: dotnet build TownSuite.Prometheus.FileSdConfigs.sln --no-restore -c Release
       - name: Publish
-        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r osx-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+        run: dotnet publish TownSuite.Prometheus.FileSdConfigs -c Release -r osx-x64 -p:PublishReadyToRun=true --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=false
       - name: Archive artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
