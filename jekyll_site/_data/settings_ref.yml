@@ -1,0 +1,19 @@
+# AppSettings reference table
+- key: DelayInSeconds
+  default: "1800"
+  desc: Seconds between refresh cycles. The poll loop sleeps this long between passes.
+- key: UserAgent
+  default: string
+  desc: User-Agent header sent on every lookup request.
+- key: OutputPath
+  default: targets.json
+  desc: Path for the v1 file_sd targets output.
+- key: OutputPathV2
+  default: targets_v2.json
+  desc: Path for the v2 (health-check) targets output.
+- key: OutputPathPrometheusMetrics
+  default: targets_..._metrics.json
+  desc: Path for the Prometheus metrics endpoints output.
+- key: OutputPathOpenTelemetry
+  default: targets_..._otel.json
+  desc: Path for the OpenTelemetry metrics endpoints output.

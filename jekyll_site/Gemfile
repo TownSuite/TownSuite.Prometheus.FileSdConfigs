@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3"
+
+# Lock down dependencies that are no longer bundled with newer Rubies.
+gem "webrick", "~> 1.8"

@@ -1,0 +1,20 @@
+title: TownSuite FileSdConfigs
+tagline: File-based service discovery for Prometheus, on autopilot.
+description: >-
+  A single self-contained executable that polls your services and continuously
+  writes Prometheus file_sd_configs target files for metrics, blackbox health
+  checks, and OpenTelemetry endpoints.
+version: v26.0.2
+repo_url: https://github.com/TownSuite/TownSuite.Prometheus.FileSdConfigs
+
+# Brand accent (TownSuite blue). Change here to re-theme the whole site.
+accent: "#00578E"
+accent_soft: "rgba(0,87,142,0.12)"
+
+# Build settings
+markdown: kramdown
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor

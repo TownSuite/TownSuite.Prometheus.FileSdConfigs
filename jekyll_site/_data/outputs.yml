@@ -1,0 +1,13 @@
+# Output files emitted by the tool
+- file: targets.json
+  color: "#00578E"
+  desc: Classic file_sd targets with your custom labels.
+- file: targets_v2.json
+  color: "#2DA343"
+  desc: Service-discovery v2 output, used for blackbox health checks.
+- file: targets_prometheus_metrics.json
+  color: "#E48D1A"
+  desc: Endpoints that expose Prometheus metrics.
+- file: targets_open_telemetry_metrics.json
+  color: "#E03A3E"
+  desc: OpenTelemetry metric endpoints.

@@ -1,0 +1,17 @@
+# "How it works" step chips
+- n: "1"
+  color: "#00578E"
+  title: Discover
+  desc: Reads service lists and endpoints from URLs or files — via Settings or SettingsV2.
+- n: "2"
+  color: "#6B95BE"
+  title: Poll
+  desc: Loops every DelayInSeconds, refreshing targets quietly in the background.
+- n: "3"
+  color: "#E48D1A"
+  title: Write
+  desc: Emits clean file_sd JSON for metrics, health checks & OpenTelemetry.
+- n: "4"
+  color: "#2DA343"
+  title: Scrape
+  desc: Prometheus picks up the files via file_sd_configs — no restarts needed.

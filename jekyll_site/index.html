@@ -1,0 +1,416 @@
+---
+layout: default
+---
+
+<!-- ===================== TOP BAR ===================== -->
+<header class="topbar">
+  <div class="topbar__inner">
+    <a href="#overview" class="brand">
+      {% include logo.html size=34 %}
+      <span class="brand__text">
+        <span class="brand__eyebrow">TownSuite</span>
+        <span class="brand__name">FileSdConfigs</span>
+      </span>
+    </a>
+    <nav class="topnav">
+      <a href="#install" class="topnav__link">Install</a>
+      <a href="#config" class="topnav__link">Configuration</a>
+      <a href="#service" class="topnav__link">Service</a>
+      <a href="#prometheus" class="topnav__link">Prometheus</a>
+      <span class="topnav__divider"></span>
+      <span class="pill-version">{{ site.version }}</span>
+      <a href="{{ site.repo_url }}" target="_blank" rel="noopener" class="btn-github">
+        {% include icons.html name='github' %}
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== LAYOUT ===================== -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar__label">Documentation</div>
+    <nav class="sidebar__nav">
+      {% for item in site.data.nav %}
+      <a href="#{{ item.id }}" class="side-link{% if forloop.first %} is-active{% endif %}" data-target="{{ item.id }}">
+        <span class="side-link__bar"></span>
+        <span>{{ item.label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+    <div class="side-card">
+      <div class="side-card__title">Self-contained binary</div>
+      <div class="side-card__body">One executable. No .NET runtime to install on the target host.</div>
+      <a href="{{ site.repo_url }}/releases" target="_blank" rel="noopener" class="side-card__link">
+        View releases
+        {% include icons.html name='arrow' size=13 %}
+      </a>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ===== OVERVIEW / HERO ===== -->
+    <section id="overview" class="section">
+      <div class="tag-pill">
+        <span class="tag-pill__dot"></span>
+        Prometheus service discovery
+      </div>
+      <div class="hero mt-22">
+        <div>
+          <h1>File-based service discovery for Prometheus, on autopilot.</h1>
+          <p class="hero__lead">A single self-contained executable that polls your services and continuously writes Prometheus <code class="ic">file_sd_configs</code> target files — for metrics, blackbox health checks, and OpenTelemetry endpoints.</p>
+          <div class="hero__actions">
+            <a href="#install" class="btn btn--primary">
+              Get started
+              {% include icons.html name='arrow' %}
+            </a>
+            <a href="{{ site.repo_url }}" target="_blank" rel="noopener" class="btn btn--ghost">
+              {% include icons.html name='github' %}
+              View source
+            </a>
+          </div>
+          <div class="hero__checks">
+            {% assign hero_checks = ".NET self-contained,Cross-platform,Runs as a service" | split: "," %}
+            {% for c in hero_checks %}
+            <div class="check">
+              {% include icons.html name='check' %}
+              {{ c }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- output preview terminal -->
+        <div class="codeblock codeblock--hero" data-codeblock>
+          <div class="codeblock__head">
+            <div class="codeblock__dots">
+              <span class="dot dot--red"></span>
+              <span class="dot dot--orange"></span>
+              <span class="dot dot--green"></span>
+              <span class="codeblock__filename">targets.json</span>
+            </div>
+            {% include copy_btn.html %}
+          </div>
+          <pre class="pre--hero">[
+  {
+    <span class="tok-key">"targets"</span>: [<span class="tok-str">"app.townsuite.com/metrics"</span>],
+    <span class="tok-key">"labels"</span>: {
+      <span class="tok-key">"job"</span>:  <span class="tok-str">"test"</span>,
+      <span class="tok-key">"env"</span>:  <span class="tok-str">"dev"</span>
+    }
+  }
+]</pre>
+        </div>
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div class="mt-64">
+        <h3 class="subhead">How it works</h3>
+        <div class="how-row">
+          {% for s in site.data.steps %}
+          <div class="step-card">
+            <div class="step-card__n" style="background:{{ s.color }}">{{ s.n }}</div>
+            <div class="step-card__title">{{ s.title }}</div>
+            <div class="step-card__desc">{{ s.desc }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- OUTPUT FILES -->
+      <div class="mt-40">
+        <h3 class="subhead">Output files</h3>
+        <div class="grid-2">
+          {% for o in site.data.outputs %}
+          <div class="output-card">
+            <span class="output-card__dot" style="background:{{ o.color }}"></span>
+            <div>
+              <div class="output-card__file">{{ o.file }}</div>
+              <div class="output-card__desc">{{ o.desc }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== INSTALL ===== -->
+    <section id="install" class="section">
+      <div class="eyebrow">Install</div>
+      <h2 class="section-h2">Build a single executable</h2>
+      <p class="section-lead">Publish a self-contained, ready-to-run binary for your target platform. The result is one file — <code class="ic">TownSuite.Prometheus.FileSdConfigs</code> — that you drop onto the host.</p>
+
+      <div class="tabs" data-tabs="os">
+        <button type="button" class="tab-btn" data-tab="mac">macOS</button>
+        <button type="button" class="tab-btn is-active" data-tab="linux">Linux</button>
+        <button type="button" class="tab-btn" data-tab="win">Windows</button>
+      </div>
+
+      <div class="tab-panel" data-tabgroup="os" data-tabpanel="mac">
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">macOS · zsh</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre class="pre--lg"><span class="tok-cmd">dotnet</span> publish -c Release -r <span class="tok-rid">osx-x64</span> \
+  -p:PublishReadyToRun=true \
+  --self-contained true \
+  -p:PublishSingleFile=true \
+  -p:EnableCompressionInSingleFile=true</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel is-active" data-tabgroup="os" data-tabpanel="linux">
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">Linux · bash</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre class="pre--lg"><span class="tok-cmd">dotnet</span> publish -c Release -r <span class="tok-rid">linux-x64</span> \
+  -p:PublishReadyToRun=true \
+  --self-contained true \
+  -p:PublishSingleFile=true \
+  -p:EnableCompressionInSingleFile=true</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tabgroup="os" data-tabpanel="win">
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">Windows · PowerShell</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre class="pre--lg"><span class="tok-cmd">dotnet</span> publish -c Release -r <span class="tok-rid">win-x64</span> `
+  -p:PublishReadyToRun=true `
+  --self-contained true `
+  -p:PublishSingleFile=true `
+  -p:EnableCompressionInSingleFile=true</pre>
+        </div>
+      </div>
+
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text">Need a different architecture? Swap the runtime identifier (<code class="ic ic--sm">-r</code>) — see the <a href="https://learn.microsoft.com/en-us/dotnet/core/rid-catalog" target="_blank" rel="noopener">.NET RID catalog</a> for the full list.</div>
+      </div>
+    </section>
+
+    <!-- ===== CONFIGURATION ===== -->
+    <section id="config" class="section">
+      <div class="eyebrow">Configuration</div>
+      <h2 class="section-h2">appsettings.json</h2>
+      <p class="section-lead">Drop an <code class="ic">appsettings.json</code> beside the executable. Define global behaviour under <strong style="color:#1d3346">AppSettings</strong>, then list your sources under <strong style="color:#1d3346">Settings</strong> or <strong style="color:#1d3346">SettingsV2</strong>.</p>
+
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">appsettings.json</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre>{
+  <span class="tok-key">"AppSettings"</span>: {
+    <span class="tok-key">"DelayInSeconds"</span>: <span class="tok-num">1800</span>,
+    <span class="tok-key">"UserAgent"</span>: <span class="tok-str">"TownSuiteSD/1.0 ..."</span>,
+    <span class="tok-key">"OutputPath"</span>: <span class="tok-str">"targets.json"</span>,
+    <span class="tok-key">"OutputPathV2"</span>: <span class="tok-str">"targets_v2.json"</span>,
+    <span class="tok-key">"OutputPathPrometheusMetrics"</span>: <span class="tok-str">"targets_prometheus_metrics.json"</span>,
+    <span class="tok-key">"OutputPathOpenTelemetry"</span>: <span class="tok-str">"targets_open_telemetry_metrics.json"</span>
+  },
+  <span class="tok-key">"Settings"</span>: [
+    {
+      <span class="tok-key">"LookupUrl"</span>: <span class="tok-str">"http host/path or filepath"</span>,
+      <span class="tok-key">"AuthHeader"</span>: <span class="tok-str">"basic auth or bearer token"</span>,
+      <span class="tok-key">"AppendPaths"</span>: [ <span class="tok-str">"/metrics"</span>, <span class="tok-str">"/api/status"</span> ],
+      <span class="tok-key">"Labels"</span>: { <span class="tok-key">"job"</span>: <span class="tok-str">"test"</span>, <span class="tok-key">"env"</span>: <span class="tok-str">"dev"</span> },
+      <span class="tok-key">"IgnoreList"</span>: [ <span class="tok-str">"https://example.townsuite.com"</span> ]
+    }
+  ],
+  <span class="tok-key">"SettingsV2"</span>: [
+    {
+      <span class="tok-key">"ServiceListUrl"</span>: <span class="tok-str">"url/path that lists services"</span>,
+      <span class="tok-key">"ServiceDiscoverUrl"</span>: <span class="tok-str">"url/path for service details"</span>,
+      <span class="tok-key">"AuthHeader"</span>: <span class="tok-str">"basic auth or bearer token"</span>,
+      <span class="tok-key">"IgnoreList"</span>: [ <span class="tok-str">"https://example.townsuite.com"</span> ],
+      <span class="tok-key">"LowercaseLabels"</span>: <span class="tok-bool">true</span>
+    }
+  ]
+}</pre>
+      </div>
+
+      <h3 class="subhead-2">AppSettings reference</h3>
+      <div class="ref-table">
+        {% for r in site.data.settings_ref %}
+        <div class="ref-row">
+          <div class="ref-key">
+            <code>{{ r.key }}</code>
+            <span class="ref-key__default">{{ r.default }}</span>
+          </div>
+          <div class="ref-desc">{{ r.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="grid-2 grid-2--lg mt-24">
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v1">Settings</span>
+            <span class="source-card__sub">v1 sources</span>
+          </div>
+          <p class="source-card__lead">Point at a list of hosts and append metric paths. Best for static, known endpoints.</p>
+          {% for f in site.data.source_fields.v1 %}
+          <div class="field-row field-row--v1">
+            <code>{{ f.k }}</code>
+            <span>{{ f.v }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v2">SettingsV2</span>
+            <span class="source-card__sub">dynamic discovery</span>
+          </div>
+          <p class="source-card__lead">Resolves a service list, then discovers details per service. Best for fleets that change.</p>
+          {% for f in site.data.source_fields.v2 %}
+          <div class="field-row field-row--v2">
+            <code>{{ f.k }}</code>
+            <span>{{ f.v }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SERVICE ===== -->
+    <section id="service" class="section">
+      <div class="eyebrow">Deploy</div>
+      <h2 class="section-h2">Run as a service</h2>
+      <p class="section-lead">Keep it running in the background and restart it automatically. Use NSSM on Windows or a systemd unit on Linux.</p>
+
+      <div class="tabs" data-tabs="svc">
+        <button type="button" class="tab-btn" data-tab="win">Windows · NSSM</button>
+        <button type="button" class="tab-btn is-active" data-tab="linux">Linux · systemd</button>
+      </div>
+
+      <div class="tab-panel" data-tabgroup="svc" data-tabpanel="win">
+        <ol class="steps-ol">
+          <li>Copy the executable to <code class="ic ic--sm">C:\prometheus\TownSuite.Prometheus.FileSdConfigs</code></li>
+          <li>Edit <code class="ic ic--sm">appsettings.json</code></li>
+          <li>Register it with <a href="https://nssm.cc/" target="_blank" rel="noopener">NSSM</a></li>
+        </ol>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">PowerShell</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre><span class="tok-cmd">nssm</span> install TownSuite.Prometheus.FileSdConfigs C:\prometheus\...\TownSuite.Prometheus.FileSdConfigs.exe
+<span class="tok-cmd">nssm</span> set TownSuite.Prometheus.FileSdConfigs AppDirectory C:\prometheus\TownSuite.Prometheus.FileSdConfigs
+<span class="tok-cmd">net</span> start TownSuite.Prometheus.FileSdConfigs</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel is-active" data-tabgroup="svc" data-tabpanel="linux">
+        <ol class="steps-ol">
+          <li>Extract the release to <code class="ic ic--sm">/opt/TownSuite.Prometheus.FileSdConfigs</code></li>
+          <li>Create the unit file below at <code class="ic ic--sm">/etc/systemd/system/</code></li>
+          <li>Enable &amp; start with <code class="ic ic--sm">systemctl</code></li>
+        </ol>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">townsuite-prometheus-filesdconfigs.service</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre><span class="tok-cmt">[Unit]</span>
+Description=TownSuite Prometheus FileSdConfigs
+
+<span class="tok-cmt">[Service]</span>
+ExecStart=/opt/TownSuite.Prometheus.FileSdConfigs/TownSuite.Prometheus.FileSdConfigs
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=TownSuite.Prometheus.FileSdConfigs
+WorkingDirectory=/opt/TownSuite.Prometheus.FileSdConfigs/
+
+<span class="tok-cmt">[Install]</span>
+WantedBy=multi-user.target</pre>
+        </div>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">bash</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre><span class="tok-cmd">systemctl</span> enable townsuite-prometheus-filesdconfigs.service
+<span class="tok-cmd">systemctl</span> start townsuite-prometheus-filesdconfigs.service</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PROMETHEUS ===== -->
+    <section id="prometheus" class="section">
+      <div class="eyebrow">Integrate</div>
+      <h2 class="section-h2">Wire it into Prometheus</h2>
+      <p class="section-lead">Add <code class="ic">file_sd_configs</code> jobs to <code class="ic">prometheus.yml</code> — one scrapes the discovered metrics endpoints, the other runs health checks through the Blackbox exporter.</p>
+
+      <div class="grid-2 grid-2--lg mb-22">
+        <div class="job-card job-card--blue">
+          <div class="job-card__title">metrics_service_discovery</div>
+          <div class="job-card__desc">Reads <code>targets_prometheus_metrics.json</code> and relabels scheme, address &amp; metrics path from each URL.</div>
+        </div>
+        <div class="job-card job-card--green">
+          <div class="job-card__title">health_checks_service_discovery</div>
+          <div class="job-card__desc">Reads <code>targets_v2.json</code> and probes each target via the Blackbox exporter at <code>:9115</code>.</div>
+        </div>
+      </div>
+
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">/etc/prometheus/prometheus.yml</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre><span class="tok-key">- job_name</span>: metrics_service_discovery
+  <span class="tok-key">scheme</span>: http
+  <span class="tok-key">file_sd_configs</span>:
+  - <span class="tok-key">files</span>:
+     - /opt/TownSuite.Prometheus.FileSdConfigs/targets_prometheus_metrics.json
+  <span class="tok-key">scrape_interval</span>: 60s
+  <span class="tok-key">relabel_configs</span>:
+    - <span class="tok-key">source_labels</span>: [__address__]
+      <span class="tok-key">regex</span>: <span class="tok-str">'^(https?)://([^/]+)(/.*)?'</span>
+      <span class="tok-key">target_label</span>: __scheme__
+      <span class="tok-key">replacement</span>: <span class="tok-str">'${1}'</span>
+    <span class="tok-cmt"># ...address &amp; metrics_path relabels follow</span>
+
+<span class="tok-cmt"># Health checks via the Blackbox exporter</span>
+<span class="tok-key">- job_name</span>: health_checks_service_discovery
+  <span class="tok-key">file_sd_configs</span>:
+  - <span class="tok-key">files</span>:
+     - /opt/TownSuite.Prometheus.FileSdConfigs/targets_v2.json
+  <span class="tok-key">metrics_path</span>: /probe
+  <span class="tok-key">params</span>:
+    <span class="tok-key">module</span>: [http_2xx]
+  <span class="tok-key">relabel_configs</span>:
+    - <span class="tok-key">source_labels</span>: [__address__]
+      <span class="tok-key">target_label</span>: __param_target
+    - <span class="tok-key">target_label</span>: __address__
+      <span class="tok-key">replacement</span>: 127.0.0.1:9115</pre>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer__brand">
+        {% include logo.html size=26 %}
+        <span>TownSuite · Prometheus FileSdConfigs</span>
+      </div>
+      <div class="footer__links">
+        <a href="{{ site.repo_url }}" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#file_sd_config" target="_blank" rel="noopener">Prometheus docs</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/rid-catalog" target="_blank" rel="noopener">RID catalog</a>
+      </div>
+    </footer>
+
+  </main>
+</div>

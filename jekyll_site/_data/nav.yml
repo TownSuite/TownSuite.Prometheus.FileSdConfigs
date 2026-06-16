@@ -1,0 +1,11 @@
+# Sidebar + scroll-spy navigation
+- id: overview
+  label: Overview
+- id: install
+  label: Install
+- id: config
+  label: Configuration
+- id: service
+  label: Run as a service
+- id: prometheus
+  label: Prometheus

@@ -1,0 +1,21 @@
+# Settings (v1) vs SettingsV2 source field references
+v1:
+  - k: LookupUrl
+    v: host/path or filepath
+  - k: AuthHeader
+    v: basic auth or bearer token
+  - k: AppendPaths
+    v: paths to append per host
+  - k: Labels
+    v: static labels for each target
+  - k: IgnoreList
+    v: URLs to skip
+v2:
+  - k: ServiceListUrl
+    v: lists the services
+  - k: ServiceDiscoverUrl
+    v: per-service detail lookup
+  - k: IgnoreList
+    v: URLs to skip
+  - k: LowercaseLabels
+    v: lowercase all label keys
