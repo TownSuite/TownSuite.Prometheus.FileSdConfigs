@@ -25,6 +25,7 @@ _data/                   Content for the repeated sections:
   settings_ref.yml       AppSettings reference table
   source_fields.yml      Settings (v1) vs SettingsV2 fields
   discovery_attributes.yml  Attributes recognized in the discover response
+  extra_health_check.yml    ExtraHealthCheck lookup contract rows
 assets/css/style.css     All styling (CSS variables drive the theme)
 assets/js/main.js        Scroll-spy, tabs, copy buttons
 assets/img/              Logo / favicon

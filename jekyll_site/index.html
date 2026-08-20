@@ -470,7 +470,7 @@ layout: default
         </div>
         <div class="callout">
           {% include icons.html name='info' %}
-          <div class="callout__text">If the lookup fails or returns invalid JSON it is logged and that instance's extra endpoints are skipped — the rest of the pass carries on.</div>
+          <div class="callout__text">The full contract for that lookup — and its failure behaviour — is in <a href="#extra">Extra health checks</a> below.</div>
         </div>
       </div>
 
@@ -504,6 +504,85 @@ layout: default
     <span class="tok-key">"labels"</span>: { <span class="tok-key">"Env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"Job"</span>: <span class="tok-str">"service1"</span> }
   }
 ]</pre>
+        </div>
+      </div>
+
+      <h3 class="subhead-2" id="extra">Extra health checks — the site owns the list</h3>
+      <p class="section-lead"><code class="ic">ExtraHealthCheck</code> inverts who owns the list. Rather than the inventory enumerating every endpoint, the site exposes one endpoint that returns the health endpoints it manages, and the tool expands it on every pass — add or remove one in the service and Prometheus follows on the next cycle, with no inventory change and no restart.</p>
+
+      <div class="ref-table">
+        {% for c in site.data.extra_health_check %}
+        <div class="ref-row">
+          <div class="ref-key">
+            <code>{{ c.k }}</code>
+          </div>
+          <div class="ref-desc">{{ c.v }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="codeblock mt-24" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">the lookup endpoint, service side</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre><span class="tok-cmd">app</span>.MapGet(<span class="tok-str">"/healthz/extralookups"</span>, () =&gt; <span class="tok-key">new</span>[]
+{
+    <span class="tok-str">"/healthz/database"</span>,
+    <span class="tok-str">"/healthz/queue"</span>,
+    <span class="tok-str">"/healthz/upstream/billing"</span>
+});</pre>
+      </div>
+
+      <h3 class="subhead-2">How one pass expands it</h3>
+      <ol class="steps-ol">
+        <li>The instance's <code class="ic ic--sm">HealthCheck</code> and <code class="ic ic--sm">HealthCheck_*</code> values are joined to <code class="ic ic--sm">BaseUrl</code> and added first.</li>
+        <li>The lookup URL is resolved — a value starting with <code class="ic ic--sm">http</code> is used verbatim, anything else is joined to <code class="ic ic--sm">BaseUrl</code>. A path asks the site itself what it manages; an absolute URL lets another service answer on its behalf.</li>
+        <li>Each string in the returned array is joined to <code class="ic ic--sm">BaseUrl</code>, or to <code class="ic ic--sm">BaseUrl</code> + <code class="ic ic--sm">ExtraHealthCheck_Prefix</code> when that attribute is set.</li>
+        <li>Everything lands in that instance's single <code class="ic ic--sm">targets</code> array, sorted, sharing its labels. Static endpoints are added first, so a discovered endpoint loses any duplicate or substring collision.</li>
+      </ol>
+
+      <h3 class="subhead-2">Failure behaviour</h3>
+      <div class="grid-2 grid-2--lg">
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v1">404 / 500</span>
+            <span class="source-card__sub">silent, harmless</span>
+          </div>
+          <p class="source-card__lead">A non-success status yields no endpoints and is skipped without a log line. The instance keeps the targets it already collected from <code class="ic ic--sm">HealthCheck</code> / <code class="ic ic--sm">HealthCheck_*</code>.</p>
+        </div>
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v2">Timeout / bad JSON</span>
+            <span class="source-card__sub">lossy</span>
+          </div>
+          <p class="source-card__lead">A transport failure or malformed body is logged and <strong>drops the whole instance from that pass</strong> — static health checks included. Those targets leave the file, and Prometheus stops probing a target it can no longer see.</p>
+        </div>
+      </div>
+      <p class="section-lead mt-24">So if you rely on this attribute, alert on the absence of the probe rather than only on its result:</p>
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">prometheus rules</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre><span class="tok-key">- alert</span>: HealthCheckTargetMissing
+  <span class="tok-key">expr</span>: absent(probe_success{job=<span class="tok-str">"health_checks_service_discovery"</span>})
+  <span class="tok-key">for</span>: 15m</pre>
+      </div>
+
+      <h3 class="subhead-2">Cost and trust</h3>
+      <div class="ref-table">
+        <div class="ref-row">
+          <div class="ref-key"><code>Request volume</code><span class="ref-key__default">per cycle</span></div>
+          <div class="ref-desc">The lookup runs once per instance, per cycle. Ten instances means ten requests every <code>DelayInSeconds</code> — there is no caching, even when they all point at the same absolute URL.</div>
+        </div>
+        <div class="ref-row">
+          <div class="ref-key"><code>AuthHeader</code><span class="ref-key__default">is forwarded</span></div>
+          <div class="ref-desc">The header configured for the inventory source is sent to the lookup URL too. If it is a shared credential, every host named by a <code>BaseUrl</code> — and any absolute URL you put in <code>ExtraHealthCheck</code> — receives it.</div>
+        </div>
+        <div class="ref-row">
+          <div class="ref-key"><code>Returned paths</code><span class="ref-key__default">host-bound</span></div>
+          <div class="ref-desc">Entries are appended to <code>BaseUrl</code> and never used as full URLs, so a compromised lookup cannot redirect probing at an unrelated host — but it can point the probe at any path on its own. <code>IgnoreList</code> suppresses specific paths.</div>
         </div>
       </div>
 

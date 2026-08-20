@@ -1,0 +1,9 @@
+# ExtraHealthCheck lookup contract
+- k: Declared by
+  v: ExtraHealthCheck in an instance's attributes — one value, not a list. One lookup per instance.
+- k: Request
+  v: GET, no body. Sends the SettingsV2 AuthHeader as Authorization and the configured UserAgent, under HttpTimeoutInSeconds.
+- k: Response
+  v: HTTP 2xx with a JSON array of strings. Nothing else is accepted — not an object, not an array of objects.
+- k: Each string
+  v: A path, joined to BaseUrl (or to BaseUrl + ExtraHealthCheck_Prefix). Leading slashes are optional.

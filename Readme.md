@@ -323,8 +323,8 @@ Each is appended to `BaseUrl`, giving:
 ]
 ```
 
-If the lookup fails or returns invalid JSON it is logged and that instance's extra endpoints are
-skipped; the rest of the run continues.
+The full contract for that lookup — and its failure behaviour — is in
+[Extra health checks](#extra-health-checks--letting-a-site-list-its-own-endpoints) below.
 
 ### c. `ExtraHealthCheck_Prefix` — mount the returned list under a path
 
@@ -369,6 +369,78 @@ With the same `["hello/world", "world/hello"]` response, the targets become:
   nest inside one another.
 * `IgnoreList` in `SettingsV2` is applied per target URL, so a single noisy endpoint can be filtered
   out without removing the whole instance.
+
+## Extra health checks — letting a site list its own endpoints
+
+`ExtraHealthCheck` inverts who owns the list. Instead of the inventory enumerating every endpoint,
+the site exposes one endpoint that returns the health endpoints it manages, and the tool expands it
+on every pass. Add or remove a health endpoint in the service and Prometheus follows on the next
+cycle, with no inventory change and no restart.
+
+### The contract
+
+| | |
+| --- | --- |
+| **Declared by** | `ExtraHealthCheck` in an instance's `attributes` — one value, not a list. One lookup per instance. |
+| **Request** | `GET`, no body. Sends the `SettingsV2` `AuthHeader` as `Authorization` and the configured `UserAgent`, under `HttpTimeoutInSeconds`. |
+| **Response** | HTTP 2xx with a JSON array of strings. Nothing else is accepted — not an object, not an array of objects. |
+| **Each string** | A path, joined to `BaseUrl` (or to `BaseUrl` + `ExtraHealthCheck_Prefix`). Leading slashes are optional. |
+
+A minimal implementation on the service side:
+
+```csharp
+app.MapGet("/healthz/extralookups", () => new[]
+{
+    "/healthz/database",
+    "/healthz/queue",
+    "/healthz/upstream/billing"
+});
+```
+
+### How one pass expands it
+
+1. The instance's `HealthCheck` and `HealthCheck_*` values are joined to `BaseUrl` and added first.
+2. The lookup URL is resolved: a value starting with `http` is used verbatim, anything else is joined
+   to `BaseUrl`. So a path asks *the site itself* what it manages, while an absolute URL lets another
+   service answer on its behalf.
+3. The array comes back and each entry is joined to `BaseUrl`, or to `BaseUrl` +
+   `ExtraHealthCheck_Prefix` when that attribute is set.
+4. Everything lands in that instance's **single** `targets` array, sorted, sharing that instance's
+   labels. `IgnoreList` is applied per URL, and a URL is dropped if it duplicates — or is a substring
+   of — a target already in the group. Because the static endpoints are added first, a discovered
+   endpoint loses that collision.
+
+### Failure behaviour
+
+The two failure modes are not equivalent, and one of them is lossy:
+
+* A **non-success HTTP status** (404, 500, …) yields no endpoints and is skipped silently — nothing
+  is logged. The instance keeps the targets it already collected from `HealthCheck` /
+  `HealthCheck_*`.
+* A **transport failure** (timeout, DNS, TLS) or a **malformed JSON body** is logged and drops the
+  whole instance from that pass — including the `HealthCheck` targets already collected. Those
+  targets disappear from the output file until a later cycle succeeds, and Prometheus stops probing a
+  target that is no longer in the file, so the endpoint goes quiet instead of alerting.
+
+If you rely on this attribute, alert on the absence of the probe rather than only on its result:
+
+```yaml
+- alert: HealthCheckTargetMissing
+  expr: absent(probe_success{job="health_checks_service_discovery"})
+  for: 15m
+```
+
+### Cost and trust
+
+* The lookup runs **once per instance, per cycle**. Ten instances of a service means ten requests
+  every `DelayInSeconds`; there is no caching, even when they all point at the same absolute URL.
+* The `AuthHeader` configured for the inventory source is sent to the lookup URL as well. If that
+  header is a shared credential, every host named by a `BaseUrl` — and any absolute URL you put in
+  `ExtraHealthCheck` — receives it. Keep the lookup on hosts you already trust with it, or leave
+  `AuthHeader` unset for sources that do not need it.
+* The returned paths are appended to `BaseUrl` and never used as full URLs, so a compromised lookup
+  cannot redirect probing at an unrelated host — but it can point the probe at any path on its own
+  host. `IgnoreList` is the lever for suppressing specific paths.
 
 ## v1 sources (obsolete)
 
