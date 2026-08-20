@@ -1,0 +1,22 @@
+# Attributes recognized inside each services[] entry returned by ServiceDiscoverUrl
+- key: BaseUrl
+  used: all outputs
+  desc: Scheme and host (plus optional base path) of the instance. Required — instances without it are skipped.
+- key: HealthCheck
+  used: targets_v2.json
+  desc: A health endpoint, appended to BaseUrl.
+- key: HealthCheck_&lt;suffix&gt;
+  used: targets_v2.json
+  desc: Additional health endpoints. Any suffix, any number of them — only the HealthCheck_ prefix is matched.
+- key: ExtraHealthCheck
+  used: targets_v2.json
+  desc: Path or absolute URL returning a JSON array of extra health endpoints for this instance.
+- key: ExtraHealthCheck_Prefix
+  used: targets_v2.json
+  desc: Optional path inserted between BaseUrl and each endpoint returned by ExtraHealthCheck.
+- key: PrometheusMetricsUrl
+  used: targets_prometheus_metrics.json
+  desc: Metrics path, appended to BaseUrl.
+- key: OpenTelemetryUrl
+  used: targets_open_telemetry_metrics.json
+  desc: OpenTelemetry path, appended to BaseUrl.

@@ -2,11 +2,12 @@
   'use strict';
 
   /* ---------- Scroll-spy: highlight the active sidebar link ---------- */
-  var ids = ['overview', 'install', 'config', 'service', 'prometheus'];
+  var ids = [];
   var links = {};
-  ids.forEach(function (id) {
-    var l = document.querySelector('.side-link[data-target="' + id + '"]');
-    if (l) links[id] = l;
+  document.querySelectorAll('.side-link[data-target]').forEach(function (l) {
+    var id = l.getAttribute('data-target');
+    ids.push(id);
+    links[id] = l;
   });
 
   var current = null;

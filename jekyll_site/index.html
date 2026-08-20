@@ -15,6 +15,8 @@ layout: default
     <nav class="topnav">
       <a href="#install" class="topnav__link">Install</a>
       <a href="#config" class="topnav__link">Configuration</a>
+      <a href="#sources" class="topnav__link">Source JSON</a>
+      <a href="#health" class="topnav__link">Health endpoints</a>
       <a href="#service" class="topnav__link">Service</a>
       <a href="#prometheus" class="topnav__link">Prometheus</a>
       <span class="topnav__divider"></span>
@@ -63,7 +65,7 @@ layout: default
       <div class="hero mt-22">
         <div>
           <h1>File-based service discovery for Prometheus, on autopilot.</h1>
-          <p class="hero__lead">A single self-contained executable that polls your services and continuously writes Prometheus <code class="ic">file_sd_configs</code> target files — for metrics, blackbox health checks, and OpenTelemetry endpoints.</p>
+          <p class="hero__lead">A single self-contained executable that polls your services and continuously writes Prometheus <code class="ic">file_sd_configs</code> target files — for blackbox health checks, metrics scraping, and DNS probing.</p>
           <div class="hero__actions">
             <a href="#install" class="btn btn--primary">
               Get started
@@ -92,16 +94,19 @@ layout: default
               <span class="dot dot--red"></span>
               <span class="dot dot--orange"></span>
               <span class="dot dot--green"></span>
-              <span class="codeblock__filename">targets.json</span>
+              <span class="codeblock__filename">targets_v2.json</span>
             </div>
             {% include copy_btn.html %}
           </div>
           <pre class="pre--hero">[
   {
-    <span class="tok-key">"targets"</span>: [<span class="tok-str">"app.townsuite.com/metrics"</span>],
+    <span class="tok-key">"targets"</span>: [
+      <span class="tok-str">"https://app.townsuite.com/healthz/live"</span>,
+      <span class="tok-str">"https://app.townsuite.com/healthz/ready"</span>
+    ],
     <span class="tok-key">"labels"</span>: {
-      <span class="tok-key">"job"</span>:  <span class="tok-str">"test"</span>,
-      <span class="tok-key">"env"</span>:  <span class="tok-str">"dev"</span>
+      <span class="tok-key">"job"</span>: <span class="tok-str">"app"</span>,
+      <span class="tok-key">"env"</span>: <span class="tok-str">"prod"</span>
     }
   }
 ]</pre>
@@ -203,7 +208,7 @@ layout: default
     <section id="config" class="section">
       <div class="eyebrow">Configuration</div>
       <h2 class="section-h2">appsettings.json</h2>
-      <p class="section-lead">Drop an <code class="ic">appsettings.json</code> beside the executable. Define global behaviour under <strong style="color:#1d3346">AppSettings</strong>, then list your sources under <strong style="color:#1d3346">Settings</strong> or <strong style="color:#1d3346">SettingsV2</strong>.</p>
+      <p class="section-lead">Drop an <code class="ic">appsettings.json</code> beside the executable. Define global behaviour under <strong style="color:#1d3346">AppSettings</strong>, then list your sources under <strong style="color:#1d3346">Settings</strong> or <strong style="color:#1d3346">SettingsV2</strong>. The JSON your lookup endpoints must return is covered in <a href="#sources">Source JSON</a>.</p>
 
       <div class="codeblock" data-codeblock>
         <div class="codeblock__head">
@@ -280,6 +285,246 @@ layout: default
           </div>
           {% endfor %}
         </div>
+      </div>
+    </section>
+
+    <!-- ===== SOURCE JSON ===== -->
+    <section id="sources" class="section">
+      <div class="eyebrow">Source JSON</div>
+      <h2 class="section-h2">What your endpoints return</h2>
+      <p class="section-lead">This is the JSON your own inventory service returns — not <code class="ic">appsettings.json</code>. Property names are matched case-insensitively, so <code class="ic ic--sm">BaseUrl</code>, <code class="ic ic--sm">baseUrl</code> and <code class="ic ic--sm">baseurl</code> are all accepted.</p>
+
+      <h3 class="subhead-2">1 · ServiceListUrl → the service keys</h3>
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">GET https://inventory.example.com/listservices</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre>[
+  <span class="tok-str">"Service1.Example"</span>,
+  <span class="tok-str">"Service2.Example"</span>,
+  <span class="tok-str">"Payments.Example"</span>
+]</pre>
+      </div>
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text">Each entry is split on <code class="ic ic--sm">.</code> and only the first segment is used, so <code class="ic ic--sm">Service1.Example</code> becomes the key <code class="ic ic--sm">Service1</code>. That key is appended directly to <code class="ic ic--sm">ServiceDiscoverUrl</code> — which is why that setting normally ends in <code class="ic ic--sm">=</code> or <code class="ic ic--sm">/</code>. A <code class="ic ic--sm">ServiceListUrl</code> that does not start with <code class="ic ic--sm">http</code> is read from disk instead, in the same array format.</div>
+      </div>
+
+      <h3 class="subhead-2">2 · ServiceDiscoverUrl{key} → the instances</h3>
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">GET https://inventory.example.com/discover?service=Service1</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre>{
+  <span class="tok-key">"version"</span>: <span class="tok-str">"1"</span>,
+  <span class="tok-key">"services"</span>: [
+    {
+      <span class="tok-key">"name"</span>: <span class="tok-str">"Service 1 — primary"</span>,
+      <span class="tok-key">"id"</span>: <span class="tok-str">"3f6b2c1e-9a44-4f2f-9c3f-6e5b1c8d0a11"</span>,
+      <span class="tok-key">"labels"</span>: {
+        <span class="tok-key">"env"</span>: <span class="tok-str">"prod"</span>,
+        <span class="tok-key">"job"</span>: <span class="tok-str">"service1"</span>
+      },
+      <span class="tok-key">"attributes"</span>: {
+        <span class="tok-key">"BaseUrl"</span>: <span class="tok-str">"https://service1.example.townsuite.com"</span>,
+        <span class="tok-key">"HealthCheck"</span>: <span class="tok-str">"/healthz/ready"</span>,
+        <span class="tok-key">"PrometheusMetricsUrl"</span>: <span class="tok-str">"/metrics"</span>,
+        <span class="tok-key">"DataCenter"</span>: <span class="tok-str">"yyz1"</span>
+      }
+    },
+    {
+      <span class="tok-key">"name"</span>: <span class="tok-str">"Service 1 — secondary"</span>,
+      <span class="tok-key">"id"</span>: <span class="tok-str">"9c0a7b55-1d2e-4a88-b0a1-7c2f9e3d4b55"</span>,
+      <span class="tok-key">"labels"</span>: { <span class="tok-key">"env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"job"</span>: <span class="tok-str">"service1"</span> },
+      <span class="tok-key">"attributes"</span>: {
+        <span class="tok-key">"BaseUrl"</span>: <span class="tok-str">"https://service1b.example.townsuite.com"</span>,
+        <span class="tok-key">"HealthCheck"</span>: <span class="tok-str">"/healthz/ready"</span>
+      }
+    }
+  ]
+}</pre>
+      </div>
+      <div class="grid-2 grid-2--lg mt-24">
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v2">services[]</span>
+            <span class="source-card__sub">one entry per instance</span>
+          </div>
+          <p class="source-card__lead">Each instance becomes one target group in the output file. An instance without a <code class="ic ic--sm">BaseUrl</code> attribute is skipped.</p>
+        </div>
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v1">labels</span>
+            <span class="source-card__sub">passed straight through</span>
+          </div>
+          <p class="source-card__lead">Copied verbatim onto the Prometheus target. Use them for <code class="ic ic--sm">job</code>, <code class="ic ic--sm">env</code> and anything else you group or alert by.</p>
+        </div>
+      </div>
+
+      <h3 class="subhead-2">Recognized attributes</h3>
+      <div class="ref-table">
+        {% for a in site.data.discovery_attributes %}
+        <div class="ref-row">
+          <div class="ref-key">
+            <code>{{ a.key }}</code>
+            <span class="ref-key__default">{{ a.used }}</span>
+          </div>
+          <div class="ref-desc">{{ a.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text"><code class="ic ic--sm">attributes</code> is free-form — unrecognized keys such as <code class="ic ic--sm">DataCenter</code> are ignored, so you can return whatever else your inventory tracks. Slashes are normalized when a path is joined to <code class="ic ic--sm">BaseUrl</code>, so <code class="ic ic--sm">https://host/</code> + <code class="ic ic--sm">/healthz</code> and <code class="ic ic--sm">https://host</code> + <code class="ic ic--sm">healthz</code> both give <code class="ic ic--sm">https://host/healthz</code>.</div>
+      </div>
+    </section>
+
+    <!-- ===== HEALTH ENDPOINTS ===== -->
+    <section id="health" class="section">
+      <div class="eyebrow">Multiple endpoints</div>
+      <h2 class="section-h2">Several health endpoints for one site</h2>
+      <p class="section-lead">Because <code class="ic">attributes</code> is a JSON object its keys must be unique — you cannot repeat <code class="ic">HealthCheck</code>. There are three ways to list more than one endpoint for a single instance, and they can be combined. All resulting URLs are collected into that instance's single <code class="ic">targets</code> array, sorted and de-duplicated.</p>
+
+      <div class="tabs" data-tabs="health">
+        <button type="button" class="tab-btn is-active" data-tab="suffix">HealthCheck_&lt;suffix&gt;</button>
+        <button type="button" class="tab-btn" data-tab="extra">ExtraHealthCheck</button>
+        <button type="button" class="tab-btn" data-tab="prefix">ExtraHealthCheck_Prefix</button>
+      </div>
+
+      <!-- a. suffixed keys -->
+      <div class="tab-panel is-active" data-tabgroup="health" data-tabpanel="suffix">
+        <p class="section-lead">A fixed list, spelled out in the inventory. Add any suffix after <code class="ic">HealthCheck_</code> — the suffix is a label for you, the tool only matches the prefix and accepts any number of them.</p>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">discover response · services[0]</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>{
+  <span class="tok-key">"labels"</span>: { <span class="tok-key">"Env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"Job"</span>: <span class="tok-str">"service1"</span> },
+  <span class="tok-key">"attributes"</span>: {
+    <span class="tok-key">"BaseUrl"</span>: <span class="tok-str">"https://service1.example.townsuite.com"</span>,
+    <span class="tok-key">"HealthCheck"</span>: <span class="tok-str">"/healthz/ready"</span>,
+    <span class="tok-key">"HealthCheck_live"</span>: <span class="tok-str">"/healthz/live"</span>,
+    <span class="tok-key">"HealthCheck_database"</span>: <span class="tok-str">"/healthz/database"</span>,
+    <span class="tok-key">"HealthCheck_queue"</span>: <span class="tok-str">"/healthz/queue"</span>
+  }
+}</pre>
+        </div>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">targets_v2.json</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>[
+  {
+    <span class="tok-key">"targets"</span>: [
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/database"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/live"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/queue"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/ready"</span>
+    ],
+    <span class="tok-key">"labels"</span>: { <span class="tok-key">"Env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"Job"</span>: <span class="tok-str">"service1"</span> }
+  }
+]</pre>
+        </div>
+      </div>
+
+      <!-- b. site-supplied list -->
+      <div class="tab-panel" data-tabgroup="health" data-tabpanel="extra">
+        <p class="section-lead">A list the site returns itself — use this when the site knows its own endpoints and you would rather not update the inventory every time one is added. The value is a path on the site or an absolute URL.</p>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">discover response · services[0].attributes</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>{
+  <span class="tok-key">"BaseUrl"</span>: <span class="tok-str">"https://service1.example.townsuite.com"</span>,
+  <span class="tok-key">"HealthCheck"</span>: <span class="tok-str">"/healthz/ready"</span>,
+  <span class="tok-key">"ExtraHealthCheck"</span>: <span class="tok-str">"/healthz/extralookups"</span>
+}</pre>
+        </div>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">GET https://service1.example.townsuite.com/healthz/extralookups</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>[<span class="tok-str">"hello/world"</span>, <span class="tok-str">"world/hello"</span>]</pre>
+        </div>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">targets_v2.json</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>[
+  {
+    <span class="tok-key">"targets"</span>: [
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/ready"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/hello/world"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/world/hello"</span>
+    ],
+    <span class="tok-key">"labels"</span>: { <span class="tok-key">"Env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"Job"</span>: <span class="tok-str">"service1"</span> }
+  }
+]</pre>
+        </div>
+        <div class="callout">
+          {% include icons.html name='info' %}
+          <div class="callout__text">If the lookup fails or returns invalid JSON it is logged and that instance's extra endpoints are skipped — the rest of the pass carries on.</div>
+        </div>
+      </div>
+
+      <!-- c. prefixed list -->
+      <div class="tab-panel" data-tabgroup="health" data-tabpanel="prefix">
+        <p class="section-lead">When the returned array holds names rather than full paths, add a prefix that sits between the base URL and each returned endpoint.</p>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">discover response · services[0].attributes</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>{
+  <span class="tok-key">"BaseUrl"</span>: <span class="tok-str">"https://service1.example.townsuite.com"</span>,
+  <span class="tok-key">"HealthCheck"</span>: <span class="tok-str">"/healthz/ready"</span>,
+  <span class="tok-key">"ExtraHealthCheck"</span>: <span class="tok-str">"/healthz/extralookups"</span>,
+  <span class="tok-key">"ExtraHealthCheck_Prefix"</span>: <span class="tok-str">"/healthz/ready/extras"</span>
+}</pre>
+        </div>
+        <div class="codeblock" data-codeblock>
+          <div class="codeblock__head">
+            <span class="codeblock__title">targets_v2.json · same ["hello/world", "world/hello"] response</span>
+            {% include copy_btn.html %}
+          </div>
+          <pre>[
+  {
+    <span class="tok-key">"targets"</span>: [
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/ready"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/ready/extras/hello/world"</span>,
+      <span class="tok-str">"https://service1.example.townsuite.com/healthz/ready/extras/world/hello"</span>
+    ],
+    <span class="tok-key">"labels"</span>: { <span class="tok-key">"Env"</span>: <span class="tok-str">"prod"</span>, <span class="tok-key">"Job"</span>: <span class="tok-str">"service1"</span> }
+  }
+]</pre>
+        </div>
+      </div>
+
+      <h3 class="subhead-2">Things to watch</h3>
+      <div class="grid-2 grid-2--lg">
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v2">One host per instance</span>
+          </div>
+          <p class="source-card__lead">Every <code class="ic ic--sm">HealthCheck_*</code> value is appended to that instance's <code class="ic ic--sm">BaseUrl</code>. Endpoints on a <em>different</em> host belong to another <code class="ic ic--sm">services[]</code> entry with its own <code class="ic ic--sm">BaseUrl</code>.</p>
+        </div>
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v1">Avoid nested paths</span>
+          </div>
+          <p class="source-card__lead">Duplicates are dropped, and so is any URL already contained in a target in the same group. Prefer distinct, fully-specified paths over paths that nest inside one another.</p>
+        </div>
+      </div>
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text">One instance always yields <strong>one</strong> target group sharing that instance's labels. Prometheus probes each URL in <code class="ic ic--sm">targets</code> separately, so with the relabel rules in the <a href="#prometheus">Prometheus</a> section the <code class="ic ic--sm">instance</code> label holds the full probed URL — that is what keeps <code class="ic ic--sm">/healthz/ready</code> and <code class="ic ic--sm">/healthz/database</code> apart in alerts. A single noisy endpoint can be dropped with <code class="ic ic--sm">IgnoreList</code> without removing the whole instance.</div>
       </div>
     </section>
 

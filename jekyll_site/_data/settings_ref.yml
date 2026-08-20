@@ -4,16 +4,25 @@
   desc: Seconds between refresh cycles. The poll loop sleeps this long between passes.
 - key: UserAgent
   default: string
-  desc: User-Agent header sent on every lookup request.
+  desc: User-Agent header sent on every lookup request. Omitted when left blank.
 - key: OutputPath
   default: targets.json
-  desc: Path for the v1 file_sd targets output.
+  desc: Path for the v1 file_sd targets output. Blank disables the v1 pass.
 - key: OutputPathV2
   default: targets_v2.json
-  desc: Path for the v2 (health-check) targets output.
+  desc: Path for the v2 (health-check) targets output. Blank disables it.
 - key: OutputPathPrometheusMetrics
   default: targets_..._metrics.json
-  desc: Path for the Prometheus metrics endpoints output.
+  desc: Path for the Prometheus metrics endpoints output. Blank disables it.
 - key: OutputPathOpenTelemetry
   default: targets_..._otel.json
-  desc: Path for the OpenTelemetry metrics endpoints output.
+  desc: Path for the OpenTelemetry metrics endpoints output. Not refreshed by the current poll loop.
+- key: OutputPathDns
+  default: targets_dns.json
+  desc: Path for the host-only DNS probing output. Blank disables it.
+- key: HttpTimeoutInSeconds
+  default: "10"
+  desc: Per-request HTTP timeout applied to every lookup.
+- key: SkipCertificateValidation
+  default: "false"
+  desc: Accepts any TLS certificate when true. For internal hosts with self-signed certs only.

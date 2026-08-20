@@ -5,6 +5,10 @@
   label: Install
 - id: config
   label: Configuration
+- id: sources
+  label: Source JSON
+- id: health
+  label: Health endpoints
 - id: service
   label: Run as a service
 - id: prometheus

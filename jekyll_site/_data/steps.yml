@@ -2,7 +2,7 @@
 - n: "1"
   color: "#00578E"
   title: Discover
-  desc: Reads service lists and endpoints from URLs or files — via Settings or SettingsV2.
+  desc: Reads a service list, then each service's instances and endpoints — via SettingsV2.
 - n: "2"
   color: "#6B95BE"
   title: Poll
@@ -10,7 +10,7 @@
 - n: "3"
   color: "#E48D1A"
   title: Write
-  desc: Emits clean file_sd JSON for metrics, health checks & OpenTelemetry.
+  desc: Emits clean file_sd JSON for health checks, metrics and DNS probing.
 - n: "4"
   color: "#2DA343"
   title: Scrape
