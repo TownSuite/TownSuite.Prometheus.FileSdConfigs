@@ -52,6 +52,13 @@ public class DestFileSdConfig
     protected List<DestinationBase> results = new();
     protected DestinationBase current;
 
+    /// <summary>
+    /// True when a lookup failed and the targets read here are therefore incomplete.
+    /// The caller uses this to keep the previous output file instead of publishing a
+    /// list that is missing endpoints.
+    /// </summary>
+    public bool LookupFailed { get; protected set; }
+
     public DestFileSdConfig(AppSettings appSettings, ILogger logger,
         Settings setting, Client client)
     {
@@ -97,7 +104,8 @@ public class DestFileSdConfig
 
         if (json?.Services == null)
         {
-            logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
+            logger?.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
+            LookupFailed = true;
             return new DestinationBase[0];
         }
 
@@ -132,7 +140,11 @@ public class DestFileSdConfig
                     var extraHealthChecks = await client.GetJsonFromContent<string[]>(setting.AuthHeader,
                         finalExtraHealthCheckUrl, appSettings);
 
-                    if (extraHealthChecks != null)
+                    if (extraHealthChecks == null)
+                    {
+                        ExtraHealthCheckUnavailable(finalExtraHealthCheckUrl, null);
+                    }
+                    else
                     {
                         foreach (string endpoint in extraHealthChecks)
                         {
@@ -150,8 +162,7 @@ public class DestFileSdConfig
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"{finalExtraHealthCheckUrl} Extra Health Check return value is invalid");
-                    continue;
+                    ExtraHealthCheckUnavailable(finalExtraHealthCheckUrl, ex);
                 }
             }
 
@@ -160,6 +171,28 @@ public class DestFileSdConfig
         }
 
         return results.ToArray();
+    }
+
+    /// <summary>
+    /// A failed extra health check lookup keeps whatever the instance already declared
+    /// statically.  Only when that leaves the instance with nothing at all has the pass
+    /// actually lost endpoints.
+    /// </summary>
+    private void ExtraHealthCheckUnavailable(string lookupUrl, Exception ex)
+    {
+        if (ex == null)
+        {
+            logger?.LogWarning($"{lookupUrl} Extra Health Check lookup returned nothing");
+        }
+        else
+        {
+            logger?.LogError(ex, $"{lookupUrl} Extra Health Check lookup failed");
+        }
+
+        if (!current.Targets.Any())
+        {
+            LookupFailed = true;
+        }
     }
 
     protected virtual void AddTarget(string url)

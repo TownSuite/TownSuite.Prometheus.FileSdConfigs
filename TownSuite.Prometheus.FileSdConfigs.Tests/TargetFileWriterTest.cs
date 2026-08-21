@@ -108,6 +108,124 @@ public class TargetFileWriterTest
     }
 
     [Test]
+    public async Task IncompletePass_KeepsThePreviousFile()
+    {
+        string target = Path_("targets_v2.json");
+        var writer = new TargetFileWriter(null);
+        await writer.WriteAsync(target, Writes("[{\"targets\":[\"https://a/healthz\"]}]"));
+
+        // A lookup failed, so the list generated this pass is missing endpoints.
+        bool written = await writer.WriteAsync(target, async stream =>
+        {
+            await Writes("[]")(stream);
+            return false;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(written, Is.False);
+            Assert.That(File.ReadAllText(target), Is.EqualTo("[{\"targets\":[\"https://a/healthz\"]}]"),
+                "a temporary lookup failure must not empty the file prometheus is reading");
+            Assert.That(File.Exists($"{target}.tmp"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task IncompletePass_WithNoPreviousFile_WritesWhatItHas()
+    {
+        string target = Path_("targets_v2.json");
+        var writer = new TargetFileWriter(null);
+
+        bool written = await writer.WriteAsync(target, async stream =>
+        {
+            await Writes("[{\"targets\":[\"https://a/healthz\"]}]")(stream);
+            return false;
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(written, Is.True, "there is no previous file to fall back to");
+            Assert.That(File.ReadAllText(target), Does.Contain("https://a/healthz"));
+        });
+    }
+
+    [Test]
+    public async Task RecoveredPass_PublishesAgain()
+    {
+        string target = Path_("targets_v2.json");
+        var writer = new TargetFileWriter(null);
+        await writer.WriteAsync(target, Writes("[\"first\"]"));
+        await writer.WriteAsync(target, async stream => { await Writes("[]")(stream); return false; });
+
+        bool written = await writer.WriteAsync(target, Writes("[\"third\"]"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(written, Is.True);
+            Assert.That(File.ReadAllText(target), Is.EqualTo("[\"third\"]"));
+        });
+    }
+
+    [Test]
+    public async Task MaxStaleCycles_EventuallyPublishesTheIncompleteList()
+    {
+        string target = Path_("targets_v2.json");
+        var writer = new TargetFileWriter(null, maxStaleCycles: 2);
+        await writer.WriteAsync(target, Writes("[\"good\"]"));
+
+        Func<Stream, Task<bool>> degraded = async stream =>
+        {
+            await Writes("[\"degraded\"]")(stream);
+            return false;
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(writer.WriteAsync(target, degraded).Result, Is.False, "pass 1 holds");
+            Assert.That(writer.WriteAsync(target, degraded).Result, Is.False, "pass 2 holds");
+            Assert.That(writer.WriteAsync(target, degraded).Result, Is.True, "pass 3 is past the budget");
+            Assert.That(File.ReadAllText(target), Is.EqualTo("[\"degraded\"]"));
+        });
+    }
+
+    [Test]
+    public async Task MaxStaleCycles_CounterResetsAfterAGoodPass()
+    {
+        string target = Path_("targets_v2.json");
+        var writer = new TargetFileWriter(null, maxStaleCycles: 1);
+        await writer.WriteAsync(target, Writes("[\"good\"]"));
+
+        Func<Stream, Task<bool>> degraded = async stream =>
+        {
+            await Writes("[\"degraded\"]")(stream);
+            return false;
+        };
+
+        await writer.WriteAsync(target, degraded);
+        await writer.WriteAsync(target, Writes("[\"good again\"]"));
+        bool written = await writer.WriteAsync(target, degraded);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(written, Is.False, "the budget starts over after a good pass");
+            Assert.That(File.ReadAllText(target), Is.EqualTo("[\"good again\"]"));
+        });
+    }
+
+    [Test]
+    public async Task GeneratorThrows_RemovesTheTempFile()
+    {
+        string target = Path_("targets.json");
+        var writer = new TargetFileWriter(null);
+
+        Assert.ThrowsAsync<HttpRequestException>(async () =>
+            await writer.WriteAsync(target, _ => throw new HttpRequestException("lookup failed")));
+
+        Assert.That(File.Exists($"{target}.tmp"), Is.False, "a failed pass should not leave temp files behind");
+        await Task.CompletedTask;
+    }
+
+    [Test]
     public async Task EveryConfiguredOutput_IsWrittenIndependently()
     {
         var writer = new TargetFileWriter(null);

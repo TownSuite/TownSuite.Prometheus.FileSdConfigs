@@ -80,7 +80,8 @@ public class DnsDestFileSdConfig : DestFileSdConfig
 
         if (json?.Services == null)
         {
-            logger.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
+            logger?.LogError($"{setting.ServiceDiscoverUrl}{key} ServiceDiscovery return value is invalid");
+            LookupFailed = true;
             return new DestinationBase[0];
         }
 

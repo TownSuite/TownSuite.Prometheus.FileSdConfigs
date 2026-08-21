@@ -26,3 +26,6 @@
 - key: SkipCertificateValidation
   default: "false"
   desc: Accepts any TLS certificate when true. For internal hosts with self-signed certs only.
+- key: MaxStaleCycles
+  default: "0"
+  desc: How many consecutive incomplete passes may keep serving the previous target files. Zero holds the last good files for as long as the lookups keep failing.

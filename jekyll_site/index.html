@@ -17,6 +17,7 @@ layout: default
       <a href="#config" class="topnav__link">Configuration</a>
       <a href="#sources" class="topnav__link">Source JSON</a>
       <a href="#health" class="topnav__link">Health endpoints</a>
+      <a href="#resilience" class="topnav__link">Failures</a>
       <a href="#service" class="topnav__link">Service</a>
       <a href="#prometheus" class="topnav__link">Prometheus</a>
       <span class="topnav__divider"></span>
@@ -481,7 +482,7 @@ layout: default
         </div>
         <div class="callout">
           {% include icons.html name='info' %}
-          <div class="callout__text">The full contract for that lookup — and its failure behaviour — is in <a href="#extra">Extra health checks</a> below.</div>
+          <div class="callout__text">The full contract for that lookup — and what happens when it fails — is in <a href="#extra">Extra health checks</a> below.</div>
         </div>
       </div>
 
@@ -557,20 +558,20 @@ layout: default
       <div class="grid-2 grid-2--lg">
         <div class="source-card">
           <div class="source-card__head">
-            <span class="source-tag source-tag--v1">404 / 500</span>
-            <span class="source-card__sub">silent, harmless</span>
+            <span class="source-tag source-tag--v1">Lookup fails</span>
+            <span class="source-card__sub">static endpoints survive</span>
           </div>
-          <p class="source-card__lead">A non-success status yields no endpoints and is skipped without a log line. The instance keeps the targets it already collected from <code class="ic ic--sm">HealthCheck</code> / <code class="ic ic--sm">HealthCheck_*</code>.</p>
+          <p class="source-card__lead">A non-success status, a transport failure, or a malformed body is logged, and the instance keeps every target already collected from <code class="ic ic--sm">HealthCheck</code> / <code class="ic ic--sm">HealthCheck_*</code>. Only the discovered extras are missing from that pass.</p>
         </div>
         <div class="source-card">
           <div class="source-card__head">
-            <span class="source-tag source-tag--v2">Timeout / bad JSON</span>
-            <span class="source-card__sub">lossy</span>
+            <span class="source-tag source-tag--v2">Nothing to fall back on</span>
+            <span class="source-card__sub">previous file is kept</span>
           </div>
-          <p class="source-card__lead">A transport failure or malformed body is logged and <strong>drops the whole instance from that pass</strong> — static health checks included. Those targets leave the file, and Prometheus stops probing a target it can no longer see.</p>
+          <p class="source-card__lead">If the instance declared nothing but <code class="ic ic--sm">ExtraHealthCheck</code>, a failed lookup loses the whole instance — so the pass is marked incomplete and <a href="#resilience">the previous file is kept</a> rather than published without it.</p>
         </div>
       </div>
-      <p class="section-lead mt-24">So if you rely on this attribute, alert on the absence of the probe rather than only on its result:</p>
+      <p class="section-lead mt-24">An <code class="ic">absent()</code> rule is still a useful backstop, since it catches a target disappearing for any reason — including a service legitimately removed from the inventory:</p>
       <div class="codeblock" data-codeblock>
         <div class="codeblock__head">
           <span class="codeblock__title">prometheus rules</span>
@@ -615,6 +616,64 @@ layout: default
       <div class="callout">
         {% include icons.html name='info' %}
         <div class="callout__text">One instance always yields <strong>one</strong> target group sharing that instance's labels. Prometheus probes each URL in <code class="ic ic--sm">targets</code> separately, so with the relabel rules in the <a href="#prometheus">Prometheus</a> section the <code class="ic ic--sm">instance</code> label holds the full probed URL — that is what keeps <code class="ic ic--sm">/healthz/ready</code> and <code class="ic ic--sm">/healthz/database</code> apart in alerts. A single noisy endpoint can be dropped with <code class="ic ic--sm">IgnoreList</code> without removing the whole instance.</div>
+      </div>
+    </section>
+
+    <!-- ===== RESILIENCE ===== -->
+    <section id="resilience" class="section">
+      <div class="eyebrow">Failure handling</div>
+      <h2 class="section-h2">Temporary failures do not empty the target files</h2>
+      <p class="section-lead">A lost lookup means the targets are <strong>unaccounted for</strong>, not that there are none. Publishing an emptier file would be worse than publishing nothing: prometheus drops the targets it no longer sees, stops probing them, and an alert on a missing target does not fire — it just goes quiet. So every pass reports whether it was complete, and an incomplete pass does not overwrite the previous file.</p>
+
+      <h3 class="subhead-2">What gets written</h3>
+      <div class="ref-table">
+        {% for o in site.data.pass_outcomes %}
+        <div class="ref-row">
+          <div class="ref-key"><code>{{ o.k }}</code></div>
+          <div class="ref-desc">{{ o.d }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <h3 class="subhead-2">What makes a pass incomplete</h3>
+      <div class="ref-table">
+        {% for c in site.data.incomplete_causes %}
+        <div class="ref-row">
+          <div class="ref-key"><code>{{ c.k }}</code></div>
+          <div class="ref-desc">{{ c.d }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text">A transport-level exception (timeout, DNS, TLS) is covered by the same guarantee from the other direction — it unwinds before the temp file is moved into place, so the previous file survives untouched while the outer handler logs <code class="ic ic--sm">Crashing</code> and exits for the service manager to restart.</div>
+      </div>
+
+      <div class="codeblock" data-codeblock>
+        <div class="codeblock__head">
+          <span class="codeblock__title">the log line to watch for</span>
+          {% include copy_btn.html %}
+        </div>
+        <pre><span class="tok-cmt">warn</span>: targets_v2.json pass was incomplete, keeping the previous file
+      so the endpoints stay in prometheus (incomplete pass 3)</pre>
+      </div>
+
+      <div class="grid-2 grid-2--lg mt-24">
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v2">Default</span>
+            <span class="source-card__sub">MaxStaleCycles: 0</span>
+          </div>
+          <p class="source-card__lead">Holds the last good files for as long as the lookups keep failing, because going blind is the worse failure. The trade-off: a service genuinely removed from the inventory keeps being probed while the source is broken.</p>
+        </div>
+        <div class="source-card">
+          <div class="source-card__head">
+            <span class="source-tag source-tag--v1">Converging</span>
+            <span class="source-card__sub">MaxStaleCycles &gt; 0</span>
+          </div>
+          <p class="source-card__lead">Accepts the incomplete list after that many consecutive failures. <code class="ic ic--sm">48</code> with a 30-minute <code class="ic ic--sm">DelayInSeconds</code> gives up after a day of continuous failure.</p>
+        </div>
       </div>
     </section>
 

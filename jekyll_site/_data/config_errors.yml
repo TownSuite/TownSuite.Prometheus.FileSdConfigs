@@ -12,6 +12,6 @@
 - k: SettingsV2 empty array
   d: Every v2 output is written as a valid empty document.
 - k: Null entry, or no ServiceListUrl
-  d: The entry is logged and skipped; the remaining entries still produce targets.
+  d: The entry is logged and skipped and the pass is marked incomplete; the remaining entries still produce targets.
 - k: HttpTimeoutInSeconds omitted or 0
   d: Falls back to 100 seconds instead of failing on a zero timeout.

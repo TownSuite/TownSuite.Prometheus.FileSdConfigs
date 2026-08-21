@@ -63,7 +63,7 @@ using var loggerFactory = LoggerFactory.Create(builder =>
 });
 ILogger logger = loggerFactory.CreateLogger<Program>();
 
-var writer = new TargetFileWriter(logger);
+var writer = new TargetFileWriter(logger, appSettings.MaxStaleCycles);
 
 try
 {
@@ -75,7 +75,7 @@ try
 
         // Each output is skipped when its path is left blank in appsettings.json.
         await writer.WriteAsync(appSettings.OutputPath,
-            stream => new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings)
+            stream => new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings, logger)
                 .GenerateTargetFile(stream));
 
         await writer.WriteAsync(appSettings.OutputPathV2,

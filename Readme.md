@@ -137,6 +137,7 @@ __appsettings.json__ example
 | `OutputPathDns` | `targets_dns.json` | Host-only targets for DNS probing. Blank disables it. |
 | `HttpTimeoutInSeconds` | `10` | Per-request HTTP timeout for all lookups. Omitted or `<= 0` falls back to 100 seconds. |
 | `SkipCertificateValidation` | `false` | When `true`, accepts any TLS certificate. Only for internal hosts with self-signed certs. |
+| `MaxStaleCycles` | `0` | How many consecutive incomplete passes may keep serving the previous target files. `0` (the default) holds the last good files for as long as the lookups keep failing. See [Temporary failures](#temporary-failures-do-not-empty-the-target-files). |
 
 ### When the configuration is wrong
 
@@ -152,7 +153,7 @@ any of the output-path settings.
 | Path is in a directory that does not exist, or is not writable | The pass throws, `Crashing` is logged at critical, and the process exits `-1`. Outputs written earlier in that pass keep their files. Under systemd/NSSM this becomes a restart loop until the path is fixed. |
 | `SettingsV2` section missing entirely | Startup fails with `Section 'SettingsV2' not found in configuration` — it is required even when only v1 sources are used. Use `"SettingsV2": []` for none. |
 | `"SettingsV2": []` | Every v2 output is written as a valid empty document, `[]`. |
-| A `null` entry, or an entry with no `ServiceListUrl` | The entry is logged and skipped; the remaining entries still produce targets. |
+| A `null` entry, or an entry with no `ServiceListUrl` | The entry is logged and skipped and the pass is marked incomplete; the remaining entries still produce targets. |
 | `HttpTimeoutInSeconds` omitted or `<= 0` | Falls back to 100 seconds instead of failing on a zero timeout. |
 | Instance has `OpenTelemetryUrl` but no `BaseUrl` | Instance is dropped — a path with nothing to append it to is not a target. |
 | Instance has `BaseUrl` but no `OpenTelemetryUrl`, or an empty one | Instance is left out of that file only. If no instance qualifies the file is `[]`, which Prometheus reads as "no targets". |
@@ -431,17 +432,17 @@ app.MapGet("/healthz/extralookups", () => new[]
 
 ### Failure behaviour
 
-The two failure modes are not equivalent, and one of them is lossy:
+A failed lookup never costs you the endpoints the inventory already declared:
 
-* A **non-success HTTP status** (404, 500, …) yields no endpoints and is skipped silently — nothing
-  is logged. The instance keeps the targets it already collected from `HealthCheck` /
-  `HealthCheck_*`.
-* A **transport failure** (timeout, DNS, TLS) or a **malformed JSON body** is logged and drops the
-  whole instance from that pass — including the `HealthCheck` targets already collected. Those
-  targets disappear from the output file until a later cycle succeeds, and Prometheus stops probing a
-  target that is no longer in the file, so the endpoint goes quiet instead of alerting.
+* Both failure modes — a **non-success HTTP status**, and a **transport failure or malformed JSON
+  body** — are logged, and the instance keeps every target already collected from `HealthCheck` and
+  `HealthCheck_*`. Only the discovered extras are missing from that pass.
+* If the instance declared **nothing but** `ExtraHealthCheck`, a failed lookup means the whole
+  instance was lost, so the pass is marked incomplete and the previous output file is kept instead —
+  see [Temporary failures](#temporary-failures-do-not-empty-the-target-files).
 
-If you rely on this attribute, alert on the absence of the probe rather than only on its result:
+An `absent()` rule is still worth having as a backstop, since it catches a target disappearing for
+any reason — including a service legitimately removed from the inventory:
 
 ```yaml
 - alert: HealthCheckTargetMissing
@@ -482,6 +483,48 @@ Every entry in `AppendPaths` is appended to every host. An `AppendPaths` entry t
 
 All resulting URLs land in a single target group carrying the static `Labels` from that `Settings`
 entry. `IgnoreList` here is an exact-match list of base URLs and target URLs.
+
+# Temporary failures do not empty the target files
+
+A lost lookup means the targets are **unaccounted for**, not that there are none. Publishing an
+emptier file would be worse than publishing nothing: Prometheus drops the targets it no longer sees,
+stops probing them, and an alert on a missing target does not fire — it just goes quiet.
+
+So each pass reports whether it was complete, and an incomplete pass does not overwrite the previous
+file:
+
+| Pass outcome | What is written |
+| --- | --- |
+| Complete | The new list replaces the file, as always. |
+| Incomplete, previous file exists | Nothing. The previous file stays in place, a warning is logged, and the next cycle tries again. |
+| Incomplete, no previous file (first run) | Whatever was discovered, since holding back would leave Prometheus with no file at all. |
+| Incomplete for more than `MaxStaleCycles` passes in a row | The incomplete list is written anyway. Only when `MaxStaleCycles` is greater than zero. |
+
+A pass is incomplete when:
+
+* `ServiceListUrl` returns a non-success status or unparseable body — every target from that source
+  is unaccounted for.
+* `ServiceDiscoverUrl{key}` fails for any service key — that service's instances are unaccounted for.
+* An `ExtraHealthCheck` lookup fails **and** the instance declared no static `HealthCheck` to fall
+  back on, so the instance is gone from this pass entirely.
+* A `Settings` / `SettingsV2` entry is unusable, e.g. a `null` entry or a blank `ServiceListUrl`.
+
+A transport-level exception (timeout, DNS, TLS) is handled by the same guarantee from the other
+direction: it unwinds before the temp file is moved into place, so the previous file survives
+untouched, and the outer handler logs `Crashing` and exits for the service manager to restart.
+
+The log line to look for, and to alert on if you scrape the service's own logs:
+
+```
+warn: targets_v2.json pass was incomplete, keeping the previous file so the endpoints stay in
+      prometheus (incomplete pass 3)
+```
+
+Holding the last good file forever is the default because going blind is the worse failure. The
+trade-off is that a service genuinely removed from the inventory keeps being probed while the source
+is broken. Set `MaxStaleCycles` when you would rather converge on the truth after a while — for
+example `MaxStaleCycles: 48` with a 30-minute `DelayInSeconds` accepts an incomplete list after a
+day of continuous failure.
 
 # Output files
 

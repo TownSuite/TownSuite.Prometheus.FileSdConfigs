@@ -9,6 +9,8 @@
   label: Source JSON
 - id: health
   label: Health endpoints
+- id: resilience
+  label: Failure handling
 - id: service
   label: Run as a service
 - id: prometheus

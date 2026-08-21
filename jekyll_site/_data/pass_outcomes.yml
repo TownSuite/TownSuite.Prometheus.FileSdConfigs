@@ -1,0 +1,9 @@
+# What gets written for each pass outcome
+- k: Complete
+  d: The new list replaces the file, as always.
+- k: Incomplete, previous file exists
+  d: Nothing. The previous file stays in place, a warning is logged, and the next cycle tries again.
+- k: Incomplete, no previous file
+  d: Whatever was discovered — holding back on a first run would leave prometheus with no file at all.
+- k: Incomplete past MaxStaleCycles
+  d: The incomplete list is written anyway. Only applies when MaxStaleCycles is greater than zero.

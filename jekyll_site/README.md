@@ -9,7 +9,8 @@ copy-to-clipboard code blocks, themed with the TownSuite pinwheel palette
 
 Sections: Overview → Install → Configuration (`appsettings.json`) → Source JSON
 (what the lookup endpoints must return) → Health endpoints (listing several
-health endpoints for one site) → Run as a service → Prometheus.
+health endpoints for one site) → Failure handling (why an incomplete pass keeps
+the previous file) → Run as a service → Prometheus.
 
 ## Structure
 
@@ -26,6 +27,9 @@ _data/                   Content for the repeated sections:
   source_fields.yml      Settings (v1) vs SettingsV2 fields
   discovery_attributes.yml  Attributes recognized in the discover response
   extra_health_check.yml    ExtraHealthCheck lookup contract rows
+  config_errors.yml         Behaviour on missing / invalid configuration
+  pass_outcomes.yml         What gets written per pass outcome
+  incomplete_causes.yml     What makes a pass incomplete
 assets/css/style.css     All styling (CSS variables drive the theme)
 assets/js/main.js        Scroll-spy, tabs, copy buttons
 assets/img/              Logo / favicon

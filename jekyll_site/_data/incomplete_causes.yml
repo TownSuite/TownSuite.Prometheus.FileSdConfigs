@@ -1,0 +1,9 @@
+# What makes a pass incomplete
+- k: ServiceListUrl fails
+  d: Non-success status or unparseable body — every target from that source is unaccounted for.
+- k: ServiceDiscoverUrl fails
+  d: For any service key — that service's instances are unaccounted for.
+- k: ExtraHealthCheck fails with nothing to fall back on
+  d: The instance declared no static HealthCheck, so it is gone from this pass entirely.
+- k: An unusable source entry
+  d: A null entry, or one with a blank ServiceListUrl.

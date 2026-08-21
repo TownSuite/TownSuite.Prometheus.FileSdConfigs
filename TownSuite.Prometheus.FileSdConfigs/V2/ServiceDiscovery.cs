@@ -21,13 +21,17 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
     protected virtual List<DestinationBase> targets { get; set; } = new ();
 
-    public async Task GenerateTargetFile(Stream output)
+    /// <returns>False when a lookup failed and the target list written is incomplete.</returns>
+    public async Task<bool> GenerateTargetFile(Stream output)
     {
+        bool complete = true;
+
         foreach (var setting in _settings ?? Array.Empty<Settings>())
         {
             if (setting == null || string.IsNullOrWhiteSpace(setting.ServiceListUrl))
             {
                 _logger?.LogError("A SettingsV2 entry has no ServiceListUrl and was skipped");
+                complete = false;
                 continue;
             }
 
@@ -45,7 +49,9 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
             if (serviceKeys == null)
             {
+                // Every target from this source is unaccounted for, not absent.
                 _logger?.LogError($"{setting.ServiceListUrl} ServiceDiscovery return value is is null");
+                complete = false;
                 continue;
             }
 
@@ -79,6 +85,11 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
                 
                 var results = await destImplimentation.Read(key);
+                if (destImplimentation.LookupFailed)
+                {
+                    complete = false;
+                }
+
                 foreach (var target in results)
                 {
                     if (target != null && target.Targets.Any())
@@ -96,5 +107,7 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
         await using var sw = new StreamWriter(output);
         await sw.WriteAsync(jsonString);
+
+        return complete;
     }
 }
