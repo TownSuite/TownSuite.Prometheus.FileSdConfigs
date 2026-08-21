@@ -133,10 +133,29 @@ __appsettings.json__ example
 | `OutputPath` | `targets.json` | v1 output. Blank disables the v1 pass. |
 | `OutputPathV2` | `targets_v2.json` | Health-check targets (v2). Blank disables it. |
 | `OutputPathPrometheusMetrics` | `targets_prometheus_metrics.json` | Prometheus metric endpoints. Blank disables it. |
-| `OutputPathOpenTelemetry` | `targets_open_telemetry_metrics.json` | OpenTelemetry metric endpoints. See the note under [Output files](#output-files). |
+| `OutputPathOpenTelemetry` | `targets_open_telemetry_metrics.json` | OpenTelemetry metric endpoints. Blank disables it. |
 | `OutputPathDns` | `targets_dns.json` | Host-only targets for DNS probing. Blank disables it. |
-| `HttpTimeoutInSeconds` | `10` | Per-request HTTP timeout for all lookups. |
+| `HttpTimeoutInSeconds` | `10` | Per-request HTTP timeout for all lookups. Omitted or `<= 0` falls back to 100 seconds. |
 | `SkipCertificateValidation` | `false` | When `true`, accepts any TLS certificate. Only for internal hosts with self-signed certs. |
+
+### When the configuration is wrong
+
+Each output is independent: a path left blank disables just that output and the others still run.
+The table below is measured behaviour, not intent — the `OutputPathOpenTelemetry` column stands for
+any of the output-path settings.
+
+| Situation | What happens |
+| --- | --- |
+| Key omitted, `null`, empty, or whitespace | That output is skipped for good. Nothing is written, no lookup runs for it, and the other outputs are unaffected. |
+| Value is a number, e.g. `12345` | Configuration binds every value as a string, so this is a valid relative filename — you get a file literally named `12345`. |
+| Value is an object or array | Binding fails and the process exits before the first pass, with `Cannot create instance of type 'System.String'`. |
+| Path is in a directory that does not exist, or is not writable | The pass throws, `Crashing` is logged at critical, and the process exits `-1`. Outputs written earlier in that pass keep their files. Under systemd/NSSM this becomes a restart loop until the path is fixed. |
+| `SettingsV2` section missing entirely | Startup fails with `Section 'SettingsV2' not found in configuration` — it is required even when only v1 sources are used. Use `"SettingsV2": []` for none. |
+| `"SettingsV2": []` | Every v2 output is written as a valid empty document, `[]`. |
+| A `null` entry, or an entry with no `ServiceListUrl` | The entry is logged and skipped; the remaining entries still produce targets. |
+| `HttpTimeoutInSeconds` omitted or `<= 0` | Falls back to 100 seconds instead of failing on a zero timeout. |
+| Instance has `OpenTelemetryUrl` but no `BaseUrl` | Instance is dropped — a path with nothing to append it to is not a target. |
+| Instance has `BaseUrl` but no `OpenTelemetryUrl`, or an empty one | Instance is left out of that file only. If no instance qualifies the file is `[]`, which Prometheus reads as "no targets". |
 
 ## SettingsV2 (recommended)
 
@@ -233,7 +252,7 @@ An instance without a `BaseUrl` attribute is skipped entirely.
 | `ExtraHealthCheck` | `targets_v2.json` | Path or absolute URL that returns a JSON array of extra health endpoints. |
 | `ExtraHealthCheck_Prefix` | `targets_v2.json` | Optional path inserted between `BaseUrl` and each endpoint returned by `ExtraHealthCheck`. |
 | `PrometheusMetricsUrl` | `targets_prometheus_metrics.json` | Metrics path, appended to `BaseUrl`. |
-| `OpenTelemetryUrl` | `targets_open_telemetry_metrics.json` | OpenTelemetry path, appended to `BaseUrl`. |
+| `OpenTelemetryUrl` | `targets_open_telemetry_metrics.json` | OpenTelemetry metrics path, appended to `BaseUrl`. Declaring it makes the instance a scrape target; instances without it are left out of that file. |
 
 Slashes are normalized when a path is joined to `BaseUrl`, so `https://host/` + `/healthz` and
 `https://host` + `healthz` both produce `https://host/healthz`.
@@ -476,7 +495,7 @@ as long as the discovered set has not changed.
 | `targets_v2.json` | `OutputPathV2` | Health-check endpoints per instance (`HealthCheck`, `HealthCheck_*`, `ExtraHealthCheck`). Feed this to the blackbox exporter. |
 | `targets_prometheus_metrics.json` | `OutputPathPrometheusMetrics` | `BaseUrl` + `PrometheusMetricsUrl` per instance. |
 | `targets_dns.json` | `OutputPathDns` | `scheme://host` only (path stripped), one group per service key, labelled `job=dns_prober` and `service=<key>`. |
-| `targets_open_telemetry_metrics.json` | `OutputPathOpenTelemetry` | `BaseUrl` + `OpenTelemetryUrl` per instance. **Note:** the writer exists but the poll loop in `Program.cs` does not currently invoke it, so this file is not refreshed. |
+| `targets_open_telemetry_metrics.json` | `OutputPathOpenTelemetry` | `BaseUrl` + `OpenTelemetryUrl` per instance. Only instances that declare `OpenTelemetryUrl` appear. |
 
 __targets_v2.json__ example
 
@@ -488,6 +507,17 @@ __targets_v2.json__ example
   },
   {
     "targets": ["https://service2.example.townsuite.com/healthz/live"],
+    "labels": { "env": "prod", "job": "service2" }
+  }
+]
+```
+
+__targets_open_telemetry_metrics.json__ example — only the instances that declare `OpenTelemetryUrl`
+
+```json
+[
+  {
+    "targets": ["https://service2.example.townsuite.com/metrics"],
     "labels": { "env": "prod", "job": "service2" }
   }
 ]
@@ -582,6 +612,27 @@ sudo apt install prometheus
         replacement: '/metrics'
         target_label: __metrics_path__
 
+  # OpenTelemetry endpoints — same relabelling as above, different file
+  - job_name: open_telemetry_service_discovery
+    scheme: http
+    file_sd_configs:
+    - files:
+       - /opt/TownSuite.Prometheus.FileSdConfigs/targets_open_telemetry_metrics.json
+    scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __scheme__
+        replacement: '${1}'
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __address__
+        replacement: '${2}'
+      - source_labels: [__address__]
+        regex: '^(https?)://([^/]+)(/.*)?'
+        target_label: __metrics_path__
+        replacement: '${3}'
+
   # Health Checks via Blackbox Exporter
   - job_name: health_checks_service_discovery
     file_sd_configs:
@@ -600,6 +651,11 @@ sudo apt install prometheus
       - target_label: __address__
         replacement: 127.0.0.1:9115
 ```
+
+The OpenTelemetry job is a plain scrape, not a blackbox probe: the file lists whatever
+`OpenTelemetryUrl` resolved to, so an instance is scraped only if its inventory entry declares that
+attribute. Point the job at an OTel Collector's `prometheus` receiver instead of Prometheus itself if
+the collector owns the scrape.
 
 Because every health endpoint is its own entry in `targets`, the `instance` label above ends up
 holding the full probed URL — that is what keeps `/healthz/ready` and `/healthz/database` apart in

@@ -23,8 +23,14 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
     public async Task GenerateTargetFile(Stream output)
     {
-        foreach (var setting in _settings)
+        foreach (var setting in _settings ?? Array.Empty<Settings>())
         {
+            if (setting == null || string.IsNullOrWhiteSpace(setting.ServiceListUrl))
+            {
+                _logger?.LogError("A SettingsV2 entry has no ServiceListUrl and was skipped");
+                continue;
+            }
+
             string[] serviceKeys;
             if (setting.ServiceListUrl.StartsWith("http"))
             {
@@ -39,7 +45,7 @@ public class ServiceDiscovery<T> where T : DestFileSdConfig
 
             if (serviceKeys == null)
             {
-                _logger.LogError($"{setting.ServiceListUrl} ServiceDiscovery return value is is null");
+                _logger?.LogError($"{setting.ServiceListUrl} ServiceDiscovery return value is is null");
                 continue;
             }
 

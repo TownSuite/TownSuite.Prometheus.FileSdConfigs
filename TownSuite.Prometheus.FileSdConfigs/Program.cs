@@ -63,17 +63,36 @@ using var loggerFactory = LoggerFactory.Create(builder =>
 });
 ILogger logger = loggerFactory.CreateLogger<Program>();
 
+var writer = new TargetFileWriter(logger);
+
 try
 {
     while (true)
     {
         logger.LogInformation("Process starting");
-        using var httpClient = CreateHttpClient();
+        using var httpClient = HttpClientFactory.Create(appSettings);
+        var client = new Client(httpClient);
 
-        await V1(httpClient);
-        await V2(httpClient);
-        await PrometheusMetrics(httpClient);
-        await DnsSD(httpClient);
+        // Each output is skipped when its path is left blank in appsettings.json.
+        await writer.WriteAsync(appSettings.OutputPath,
+            stream => new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings)
+                .GenerateTargetFile(stream));
+
+        await writer.WriteAsync(appSettings.OutputPathV2,
+            stream => new ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger)
+                .GenerateTargetFile(stream));
+
+        await writer.WriteAsync(appSettings.OutputPathPrometheusMetrics,
+            stream => new ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger)
+                .GenerateTargetFile(stream));
+
+        await writer.WriteAsync(appSettings.OutputPathOpenTelemetry,
+            stream => new ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger)
+                .GenerateTargetFile(stream));
+
+        await writer.WriteAsync(appSettings.OutputPathDns,
+            stream => new ServiceDiscovery<DnsDestFileSdConfig>(client, settingsV2, appSettings, logger)
+                .GenerateTargetFile(stream));
 
         logger.LogInformation($"Waiting for {appSettings.DelayInSeconds} seconds.");
         await Task.Delay(TimeSpan.FromSeconds(appSettings.DelayInSeconds));
@@ -84,111 +103,3 @@ catch (Exception ex)
     logger.LogCritical(ex, "Crashing");
     System.Environment.Exit(-1);
 }
-
-async Task V1(HttpClient httpClient)
-{
-    if (string.IsNullOrWhiteSpace(appSettings.OutputPath))
-    {
-        return;
-    }
-    
-    var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings);
-    string tempPath = $"{appSettings.OutputPath}.tmp";
-    await using (var fs = new FileStream(tempPath, FileMode.Create))
-    {
-        await sd.GenerateTargetFile(fs);
-    }
-    File.Move(tempPath, appSettings.OutputPath, true);
-}
-
-async Task V2(HttpClient httpClient)
-{
-    if (string.IsNullOrWhiteSpace(appSettings.OutputPathV2))
-    {
-        return;
-    }
-
-    var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger);
-    string tempPath = $"{appSettings.OutputPathV2}.tmp";
-    await using (var fs = new FileStream(tempPath, FileMode.Create))
-    {
-        await sd.GenerateTargetFile(fs);
-    }
-    File.Move(tempPath, appSettings.OutputPathV2, true);
-}
-
-async Task PrometheusMetrics(HttpClient httpClient)
-{
-    if (string.IsNullOrWhiteSpace(appSettings.OutputPathPrometheusMetrics))
-    {
-        return;
-    }
-    var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    string tempPath = $"{appSettings.OutputPathPrometheusMetrics}.tmp";
-    await using (var fs = new FileStream(tempPath, FileMode.Create))
-    {
-        await sd.GenerateTargetFile(fs);
-    }
-    
-    File.Move(tempPath, appSettings.OutputPathPrometheusMetrics, true);
-}
-
-async Task OpenTelemetryMetrics(HttpClient httpClient)
-{
-    if (string.IsNullOrWhiteSpace(appSettings.OutputPathOpenTelemetry))
-    {
-        return;
-    }
-    
-    var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    string tempPath = $"{appSettings.OutputPathOpenTelemetry}.tmp";
-    await using (var fs = new FileStream(tempPath, FileMode.Create))
-    {
-        await sd.GenerateTargetFile(fs);
-    }
-    File.Move(tempPath, appSettings.OutputPathOpenTelemetry, true);
-}
-
-async Task DnsSD(HttpClient httpClient)
-{
-    if (string.IsNullOrWhiteSpace(appSettings.OutputPathDns))
-    {
-        return;
-    }
-    
-    var client = new Client(httpClient);
-    var sd = new TownSuite.Prometheus.FileSdConfigs.V2.ServiceDiscovery<DnsDestFileSdConfig>(client, settingsV2, appSettings, logger);
-    string tempPath = $"{appSettings.OutputPathDns}.tmp";
-    await using (var fs = new FileStream(tempPath, FileMode.Create))
-    {
-        await sd.GenerateTargetFile(fs);
-    }
-    File.Move(tempPath, appSettings.OutputPathDns, true);
-}
-
-HttpClient CreateHttpClient()
-{
-    if (appSettings.SkipCertificateValidation)
-    {
-        var handler = new HttpClientHandler
-        {
-            // Allow self-signed certificates when explicitly enabled.
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        };
-
-        return new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
-        };
-    }
-
-    return new HttpClient
-    {
-        Timeout = TimeSpan.FromSeconds(appSettings.HttpTimeoutInSeconds)
-    };
-}
-

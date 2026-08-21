@@ -65,7 +65,7 @@ layout: default
       <div class="hero mt-22">
         <div>
           <h1>File-based service discovery for Prometheus, on autopilot.</h1>
-          <p class="hero__lead">A single self-contained executable that polls your services and continuously writes Prometheus <code class="ic">file_sd_configs</code> target files — for blackbox health checks, metrics scraping, and DNS probing.</p>
+          <p class="hero__lead">A single self-contained executable that polls your services and continuously writes Prometheus <code class="ic">file_sd_configs</code> target files — for blackbox health checks, metrics scraping, OpenTelemetry, and DNS probing.</p>
           <div class="hero__actions">
             <a href="#install" class="btn btn--primary">
               Get started
@@ -254,6 +254,17 @@ layout: default
             <span class="ref-key__default">{{ r.default }}</span>
           </div>
           <div class="ref-desc">{{ r.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <h3 class="subhead-2">When the configuration is wrong</h3>
+      <p class="section-lead">Each output is independent — a path left blank disables just that one and the rest still run. This is measured behaviour, and it applies to any of the output-path settings.</p>
+      <div class="ref-table">
+        {% for e in site.data.config_errors %}
+        <div class="ref-row">
+          <div class="ref-key"><code>{{ e.k }}</code></div>
+          <div class="ref-desc">{{ e.d }}</div>
         </div>
         {% endfor %}
       </div>
@@ -687,6 +698,10 @@ WantedBy=multi-user.target</pre>
           <div class="job-card__title">health_checks_service_discovery</div>
           <div class="job-card__desc">Reads <code>targets_v2.json</code> and probes each target via the Blackbox exporter at <code>:9115</code>.</div>
         </div>
+        <div class="job-card job-card--blue">
+          <div class="job-card__title">open_telemetry_service_discovery</div>
+          <div class="job-card__desc">Reads <code>targets_open_telemetry_metrics.json</code> with the same relabelling — a plain scrape, so an instance appears only if it declares <code>OpenTelemetryUrl</code>.</div>
+        </div>
       </div>
 
       <div class="codeblock" data-codeblock>
@@ -707,6 +722,16 @@ WantedBy=multi-user.target</pre>
       <span class="tok-key">replacement</span>: <span class="tok-str">'${1}'</span>
     <span class="tok-cmt"># ...address &amp; metrics_path relabels follow</span>
 
+<span class="tok-cmt"># OpenTelemetry endpoints — same relabelling, different file</span>
+<span class="tok-key">- job_name</span>: open_telemetry_service_discovery
+  <span class="tok-key">scheme</span>: http
+  <span class="tok-key">file_sd_configs</span>:
+  - <span class="tok-key">files</span>:
+     - /opt/TownSuite.Prometheus.FileSdConfigs/targets_open_telemetry_metrics.json
+  <span class="tok-key">scrape_interval</span>: 60s
+  <span class="tok-key">relabel_configs</span>:
+    <span class="tok-cmt"># same scheme / address / metrics_path relabels as above</span>
+
 <span class="tok-cmt"># Health checks via the Blackbox exporter</span>
 <span class="tok-key">- job_name</span>: health_checks_service_discovery
   <span class="tok-key">file_sd_configs</span>:
@@ -720,6 +745,10 @@ WantedBy=multi-user.target</pre>
       <span class="tok-key">target_label</span>: __param_target
     - <span class="tok-key">target_label</span>: __address__
       <span class="tok-key">replacement</span>: 127.0.0.1:9115</pre>
+      </div>
+      <div class="callout">
+        {% include icons.html name='info' %}
+        <div class="callout__text">The OpenTelemetry job is a plain scrape, not a blackbox probe. Point it at an OTel Collector's <code class="ic ic--sm">prometheus</code> receiver instead of Prometheus itself if the collector owns the scrape.</div>
       </div>
     </section>
 

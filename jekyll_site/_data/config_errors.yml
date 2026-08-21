@@ -1,0 +1,17 @@
+# Measured behaviour when an output-path / SettingsV2 value is missing or wrong
+- k: Key omitted, null or blank
+  d: That output is skipped for good — nothing written, no lookup run, other outputs unaffected.
+- k: A number, e.g. 12345
+  d: Configuration binds every value as a string, so this is a valid relative filename. You get a file literally named 12345.
+- k: An object or array
+  d: Binding fails and the process exits before the first pass.
+- k: Missing or unwritable directory
+  d: The pass throws, logs Crashing at critical and exits -1. Outputs written earlier in the pass keep their files; systemd or NSSM then restarts in a loop until the path is fixed.
+- k: SettingsV2 section missing
+  d: Startup fails — the section is required even when only v1 sources are used. Use an empty array for none.
+- k: SettingsV2 empty array
+  d: Every v2 output is written as a valid empty document.
+- k: Null entry, or no ServiceListUrl
+  d: The entry is logged and skipped; the remaining entries still produce targets.
+- k: HttpTimeoutInSeconds omitted or 0
+  d: Falls back to 100 seconds instead of failing on a zero timeout.

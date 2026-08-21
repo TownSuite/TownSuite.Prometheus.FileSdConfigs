@@ -10,7 +10,7 @@
 - n: "3"
   color: "#E48D1A"
   title: Write
-  desc: Emits clean file_sd JSON for health checks, metrics and DNS probing.
+  desc: Emits clean file_sd JSON for health checks, metrics, OpenTelemetry and DNS.
 - n: "4"
   color: "#2DA343"
   title: Scrape

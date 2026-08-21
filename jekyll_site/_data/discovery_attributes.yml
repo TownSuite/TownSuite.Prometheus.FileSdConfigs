@@ -19,4 +19,4 @@
   desc: Metrics path, appended to BaseUrl.
 - key: OpenTelemetryUrl
   used: targets_open_telemetry_metrics.json
-  desc: OpenTelemetry path, appended to BaseUrl.
+  desc: OpenTelemetry metrics path, appended to BaseUrl. Declaring it makes the instance a scrape target; instances without it are left out of that file.

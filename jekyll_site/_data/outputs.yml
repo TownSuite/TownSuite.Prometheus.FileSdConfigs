@@ -13,4 +13,4 @@
   desc: Legacy v1 targets — every host crossed with AppendPaths, plus your static labels.
 - file: targets_open_telemetry_metrics.json
   color: "#E03A3E"
-  desc: OpenTelemetry endpoints. The writer exists but the poll loop does not invoke it yet.
+  desc: BaseUrl + OpenTelemetryUrl — only instances that declare the attribute.

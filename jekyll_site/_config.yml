@@ -3,7 +3,7 @@ tagline: File-based service discovery for Prometheus, on autopilot.
 description: >-
   A single self-contained executable that polls your services and continuously
   writes Prometheus file_sd_configs target files for blackbox health checks,
-  metrics scraping, and DNS probing.
+  metrics scraping, OpenTelemetry, and DNS probing.
 version: v26.0.2
 repo_url: https://github.com/TownSuite/TownSuite.Prometheus.FileSdConfigs
 

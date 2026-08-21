@@ -16,13 +16,13 @@
   desc: Path for the Prometheus metrics endpoints output. Blank disables it.
 - key: OutputPathOpenTelemetry
   default: targets_..._otel.json
-  desc: Path for the OpenTelemetry metrics endpoints output. Not refreshed by the current poll loop.
+  desc: Path for the OpenTelemetry metrics endpoints output. Blank disables it.
 - key: OutputPathDns
   default: targets_dns.json
   desc: Path for the host-only DNS probing output. Blank disables it.
 - key: HttpTimeoutInSeconds
   default: "10"
-  desc: Per-request HTTP timeout applied to every lookup.
+  desc: Per-request HTTP timeout applied to every lookup. Omitted or zero falls back to 100 seconds.
 - key: SkipCertificateValidation
   default: "false"
   desc: Accepts any TLS certificate when true. For internal hosts with self-signed certs only.
