@@ -91,7 +91,8 @@ __appsettings.json__ example
     "OutputPathOpenTelemetry": "targets_open_telemetry_metrics.json",
     "OutputPathDns": "targets_dns.json",
     "HttpTimeoutInSeconds": 10,
-    "SkipCertificateValidation": false
+    "SkipCertificateValidation": false,
+    "MaxStaleCycles": 0
   },
   "Settings": [
     {
