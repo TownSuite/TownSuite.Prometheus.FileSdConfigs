@@ -151,7 +151,7 @@ any of the output-path settings.
 | Key omitted, `null`, empty, or whitespace | That output is skipped for good. Nothing is written, no lookup runs for it, and the other outputs are unaffected. |
 | Value is a number, e.g. `12345` | Configuration binds every value as a string, so this is a valid relative filename — you get a file literally named `12345`. |
 | Value is an object or array | Binding fails and the process exits before the first pass, with `Cannot create instance of type 'System.String'`. |
-| Path is in a directory that does not exist, or is not writable | The pass throws, `Crashing` is logged at critical, and the process exits `-1`. Outputs written earlier in that pass keep their files. Under systemd/NSSM this becomes a restart loop until the path is fixed. |
+| Path is in a directory that does not exist, or is not writable | That output's pass fails and is logged at error on every cycle until the path is fixed. The other outputs are unaffected, the previous file (if any) is kept, and the process keeps running. |
 | `SettingsV2` section missing entirely | Startup fails with `Section 'SettingsV2' not found in configuration` — it is required even when only v1 sources are used. Use `"SettingsV2": []` for none. |
 | `"SettingsV2": []` | Every v2 output is written as a valid empty document, `[]`. |
 | A `null` entry, or an entry with no `ServiceListUrl` | The entry is logged and skipped and the pass is marked incomplete; the remaining entries still produce targets. |
@@ -510,9 +510,17 @@ A pass is incomplete when:
   back on, so the instance is gone from this pass entirely.
 * A `Settings` / `SettingsV2` entry is unusable, e.g. a `null` entry or a blank `ServiceListUrl`.
 
-A transport-level exception (timeout, DNS, TLS) is handled by the same guarantee from the other
-direction: it unwinds before the temp file is moved into place, so the previous file survives
-untouched, and the outer handler logs `Crashing` and exits for the service manager to restart.
+A transport-level exception (timeout, DNS, TLS), or any other exception inside a pass, is handled
+by the same guarantee from the other direction: it unwinds before the temp file is moved into place,
+so the previous file survives untouched. The failure is logged at error and that output is retried
+on the next cycle; the other outputs in the same cycle still run, and **the process does not exit**.
+
+Earlier builds exited instead and relied on the service manager to restart them. A few minutes of
+`503` from one source became an exception inside a pass, the process exited, and a unit whose
+`RestartSec` systemd could not parse (an inline comment, see
+[Setup as a Linux service](#setup-as-a-linux-service)) made systemd give up after five restarts in
+five seconds. Every output stayed frozen long after the source had recovered. Nothing about a
+failed pass is improved by a process exit.
 
 The log line to look for, and to alert on if you scrape the service's own logs:
 
@@ -599,23 +607,32 @@ net start TownSuite.Prometheus.FileSdConfigs
 
 Extract the release and copy it to /opt/TownSuite.Prometheus.FileSdConfigs.
 
+A systemd unit file has **no inline comments**. Only a line that *begins* with `#` or `;` is a
+comment; `RestartSec=10   # ten seconds` is a value systemd cannot parse, so it logs
+`Failed to parse sec value, ignoring` and silently uses the default of 100 ms. An earlier version
+of this sample had exactly that, and the result was five restarts in five seconds, the start limit,
+and a unit that stayed `failed` until someone noticed. `StartLimitIntervalSec=0` below means systemd never
+gives up on it; the process now survives a failed pass on its own, so a restart is only ever for a
+genuine crash, and one of those should keep being retried rather than left down.
+
 ```
 [Unit]
-Description=The description of your service
-# How to install:
-# Copy YourProgramName binary to /opt/TownSuite.Prometheus.FileSdConfigs/TownSuite.Prometheus.FileSdConfigs
-# Copy /etc/systemd/system/townsuite-prometheus-filesdconfigs.service
-# systemctl enable townsuite-prometheus-filesdconfigs.service
-# systemctl start townsuite-prometheus-filesdconfigs.service
+Description=TownSuite Prometheus file_sd target generator
+# Install:
+#   copy the release to /opt/TownSuite.Prometheus.FileSdConfigs/
+#   copy this file to /etc/systemd/system/townsuite-prometheus-filesdconfigs.service
+#   systemctl daemon-reload
+#   systemctl enable --now townsuite-prometheus-filesdconfigs.service
+StartLimitIntervalSec=0
 
 [Service]
 ExecStart=/opt/TownSuite.Prometheus.FileSdConfigs/TownSuite.Prometheus.FileSdConfigs
-Restart=always
-RestartSec=10                       # Restart service after 10 seconds if node service crashes
-StandardOutput=syslog               # Output to syslog" >> /etc/systemd/system/your-program-service-name.service
-StandardError=syslog                # Output to syslog" >> /etc/systemd/system/your-program-service-name.service
-SyslogIdentifier=TownSuite.Prometheus.FileSdConfigs
 WorkingDirectory=/opt/TownSuite.Prometheus.FileSdConfigs/
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=TownSuite.Prometheus.FileSdConfigs
 
 [Install]
 WantedBy=multi-user.target

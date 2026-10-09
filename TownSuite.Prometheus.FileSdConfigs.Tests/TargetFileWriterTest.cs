@@ -96,13 +96,32 @@ public class TargetFileWriterTest
     }
 
     [Test]
+    public async Task TryWriteAsync_GeneratorThrows_ReturnsFalseAndLeavesThePreviousFileIntact()
+    {
+        // A source returning 503 for a few minutes became an exception inside a pass, the
+        // process exited, and a mis-parsed RestartSec kept it down long after the source recovered.
+        // The main loop goes through this entry point so a failed pass ends at the log.
+        string target = Path_("targets.json");
+        await File.WriteAllTextAsync(target, "[{\"targets\":[\"previous\"]}]");
+        var writer = new TargetFileWriter(null);
+
+        bool written = await writer.TryWriteAsync(target,
+            _ => throw new NullReferenceException("source answered 503, lookup came back null"));
+
+        Assert.That(written, Is.False);
+        Assert.That(File.ReadAllText(target), Is.EqualTo("[{\"targets\":[\"previous\"]}]"));
+        Assert.That(File.Exists(target + ".tmp"), Is.False, "the half-written temp file must be cleaned up");
+    }
+
+    [Test]
     public void OutputPathInAMissingDirectory_Throws()
     {
         string target = Path.Combine(_dir, "does_not_exist", "targets.json");
         var writer = new TargetFileWriter(null);
 
-        // Documents current behaviour: an unusable output path is fatal, and Program.cs
-        // turns that into a LogCritical + exit so the service manager restarts it.
+        // WriteAsync still throws on an unusable output path. Program.cs reaches it through
+        // TryWriteAsync, so the error is logged every cycle until the path is fixed instead
+        // of ending the process.
         Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
             await writer.WriteAsync(target, Writes("[]")));
     }

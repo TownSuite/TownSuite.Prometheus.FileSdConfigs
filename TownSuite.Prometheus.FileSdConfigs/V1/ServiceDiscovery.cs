@@ -54,6 +54,12 @@ public class ServiceDiscovery
             }
 
             var processedTargets = await DestFileSdConfig.Create(retrievedHosts, setting, _client, _appSettings);
+            if (processedTargets.LookupFailed)
+            {
+                _logger?.LogError($"{setting.LookupUrl} an AppendPaths lookup returned nothing");
+                complete = false;
+            }
+
             if (processedTargets.Targets.Any())
             {
                 targets.Add(processedTargets);

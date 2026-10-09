@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using NUnit.Framework;
 using TownSuite.Prometheus.FileSdConfigs.V1;
 
@@ -73,7 +73,35 @@ public class SdTargetFileTest
             "[{\"targets\":[\"https://example.site1.townsuite.com/healthz/live\",\"https://example.site1.townsuite.com/healthz/ready\",\"https://example.site1.townsuite.com/hello/world\",\"https://example.site1.townsuite.com/world/hello\",\"https://example.site2.townsuite.com/healthz/live\",\"https://example.site2.townsuite.com/healthz/ready\",\"https://example.site2.townsuite.com/hello/world\",\"https://example.site2.townsuite.com/world/hello\"],\"labels\":{\"job\":\"test\"}}]";
         Assert.That(string.Equals(actualJson, expectedJson), Is.EqualTo(true));
     }
-    
-  
+
+    [Test]
+    public async Task AppendPathLookupReturningNothingKeepsStaticPathsAndMarksIncomplete()
+    {
+        // A non-success response from an AppendPaths URL came back as null and
+        // the foreach over it crashed the process, freezing every output file.
+        using var ms = new MemoryStream();
+        var st = new List<SettingsV1>();
+        st.Add(new SettingsV1()
+        {
+            AppendPaths = new[]
+                { "/healthz/live", "https://a.test.site.townsuite.com/get_appendpaths" },
+            AuthHeader = null,
+            IgnoreList = null,
+            Labels = new Dictionary<string, string> { { "job", "test" } },
+            LookupUrl = "https://a.test.site.townsuite.com/get_endpoints"
+        });
+
+        var client = new FakeClient(null,
+            returnValues: new string[] { "https://example.site1.townsuite.com" },
+            extraPathsAppendPaths: null);
+        var sd = new ServiceDiscovery(client, st.ToArray(), new AppSettings());
+        bool complete = await sd.GenerateTargetFile(ms);
+
+        string actualJson = Encoding.UTF8.GetString(ms.ToArray());
+        string expectedJson =
+            "[{\"targets\":[\"https://example.site1.townsuite.com/healthz/live\"],\"labels\":{\"job\":\"test\"}}]";
+        Assert.That(actualJson, Is.EqualTo(expectedJson));
+        Assert.That(complete, Is.False, "a failed lookup must keep the previous file, not replace it");
+    }
 
 }
