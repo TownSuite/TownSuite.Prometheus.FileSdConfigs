@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT License
 
 Copyright (c) 2022 TownSuite Municipal Software
@@ -73,24 +73,27 @@ try
         using var httpClient = HttpClientFactory.Create(appSettings);
         var client = new Client(httpClient);
 
-        // Each output is skipped when its path is left blank in appsettings.json.
-        await writer.WriteAsync(appSettings.OutputPath,
+        // Each output is skipped when its path is left blank in appsettings.json, and an
+        // output whose pass throws is logged and retried next cycle rather than ending the
+        // process — TargetFileWriter.TryWriteAsync says why. Only a failure outside the
+        // passes themselves reaches the handler below.
+        await writer.TryWriteAsync(appSettings.OutputPath,
             stream => new TownSuite.Prometheus.FileSdConfigs.V1.ServiceDiscovery(client, settings, appSettings, logger)
                 .GenerateTargetFile(stream));
 
-        await writer.WriteAsync(appSettings.OutputPathV2,
+        await writer.TryWriteAsync(appSettings.OutputPathV2,
             stream => new ServiceDiscovery<DestFileSdConfig>(client, settingsV2, appSettings, logger)
                 .GenerateTargetFile(stream));
 
-        await writer.WriteAsync(appSettings.OutputPathPrometheusMetrics,
+        await writer.TryWriteAsync(appSettings.OutputPathPrometheusMetrics,
             stream => new ServiceDiscovery<PrometheusMetricsDestFileSdConfig>(client, settingsV2, appSettings, logger)
                 .GenerateTargetFile(stream));
 
-        await writer.WriteAsync(appSettings.OutputPathOpenTelemetry,
+        await writer.TryWriteAsync(appSettings.OutputPathOpenTelemetry,
             stream => new ServiceDiscovery<OpenTelemetryDestFileSdConfig>(client, settingsV2, appSettings, logger)
                 .GenerateTargetFile(stream));
 
-        await writer.WriteAsync(appSettings.OutputPathDns,
+        await writer.TryWriteAsync(appSettings.OutputPathDns,
             stream => new ServiceDiscovery<DnsDestFileSdConfig>(client, settingsV2, appSettings, logger)
                 .GenerateTargetFile(stream));
 

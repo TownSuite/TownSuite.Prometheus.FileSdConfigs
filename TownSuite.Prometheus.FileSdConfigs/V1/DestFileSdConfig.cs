@@ -50,6 +50,7 @@ public class DestFileSdConfig
         Client client, AppSettings appSettings)
     {
         List<string> targets = new List<string>();
+        bool lookupFailed = false;
         foreach (var url in retrievedHosts)
         {
             if (setting.IgnoreList != null && setting.IgnoreList.Contains(url))
@@ -64,6 +65,17 @@ public class DestFileSdConfig
                 {
                     var extraEndpoints =
                         await client.GetJsonFromContent<string[]>(setting.AuthHeader, path, appSettings);
+                    if (extraEndpoints == null)
+                    {
+                        // A non-success response comes back as null, and iterating it was a
+                        // NullReferenceException that took the whole process down — and with
+                        // it every output file froze, not just this one.
+                        // The endpoints are unaccounted for, not gone: keep what this host
+                        // declared statically and let the caller keep the previous file.
+                        lookupFailed = true;
+                        continue;
+                    }
+
                     foreach (var extraPath in extraEndpoints)
                     {
                         targets.Add(MakeSafeUrl(url, extraPath));
@@ -76,8 +88,16 @@ public class DestFileSdConfig
             }
         }
 
-        return new DestFileSdConfig(targets, setting);
+        return new DestFileSdConfig(targets, setting) { LookupFailed = lookupFailed };
     }
+
+    /// <summary>
+    /// True when an AppendPaths URL lookup returned nothing, so the target list is
+    /// incomplete rather than authoritative.  Never serialised: it is a verdict about
+    /// the pass, not a field of the file_sd entry.
+    /// </summary>
+    [JsonIgnore]
+    public bool LookupFailed { get; private init; }
     
     
     [JsonPropertyName("targets")] public string[] Targets => _targets.ToArray();

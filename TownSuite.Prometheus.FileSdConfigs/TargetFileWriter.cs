@@ -31,6 +31,35 @@ public class TargetFileWriter
         _maxStaleCycles = maxStaleCycles;
     }
 
+    /// <summary>
+    /// <see cref="WriteAsync(string, Func{Stream, Task{bool}})"/> for the main loop: a
+    /// pass that throws is logged and reported as not written, and the exception stops
+    /// here.
+    /// </summary>
+    /// <remarks>
+    /// A few minutes of 503 at one source surfaced as a NullReferenceException inside a
+    /// pass, the exception reached Program.cs's outer handler, and the process exited
+    /// for the service manager to restart it.  The unit's RestartSec carried an inline
+    /// comment that systemd silently ignores, so it restarted five times in five
+    /// seconds, hit the start limit, and stayed down long after the source had
+    /// recovered.  Every output froze, not only the one whose source
+    /// had failed.  A failed pass is a failed pass: the previous file is already kept by
+    /// WriteAsync, so the right response is to log it and try again next cycle.
+    /// </remarks>
+    public async Task<bool> TryWriteAsync(string outputPath, Func<Stream, Task<bool>> generate)
+    {
+        try
+        {
+            return await WriteAsync(outputPath, generate);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex,
+                $"{outputPath} pass failed, keeping the previous file; retrying next cycle");
+            return false;
+        }
+    }
+
     public Task<bool> WriteAsync(string outputPath, Func<Stream, Task> generate)
     {
         return WriteAsync(outputPath, async stream =>
